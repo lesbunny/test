@@ -21,5 +21,16 @@ jobs:
           python-version: "3.12"
       - name: Compile application and tests
         run: python -m py_compile arch.py test_gh.py
+      - name: Validate embedded JavaScript syntax
+        run: |
+          python - <<'PY'
+          import re
+          source = open("arch.py", encoding="utf-8").read()
+          matches = re.findall(r"<script>(.*?)</script>", source, re.S)
+          if len(matches) != 1:
+              raise SystemExit(f"Expected one embedded script, found {len(matches)}")
+          open("/tmp/arch-ui.js", "w", encoding="utf-8").write(matches[0])
+          PY
+          node --check /tmp/arch-ui.js
       - name: Run GitHub integration regression tests
         run: python test_gh.py

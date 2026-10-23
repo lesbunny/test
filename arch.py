@@ -365,7 +365,8 @@ def job_backup(job, req):
                 "created": datetime.datetime.now().isoformat(timespec="seconds"),
                 "host": socket.gethostname(), "user": USER, "source_os": pretty_os(),
                 "native": pk.get("native", []), "aur": pk.get("aur", []), "flatpak": pk.get("flatpak", []),
-                "file_count": len(entries), "bytes": total, "items": [w["rel"] for w in work]}
+                "file_count": len(entries), "bytes": total, "items": [w["rel"] for w in work],
+                "github": [{k: e.get(k) for k in ("repo", "mode", "kind", "fp", "asset")} for e in reg_load()]}
     use_zstd = bool(shutil.which("zstd"))
     name = "arch-migrate-" + datetime.datetime.now().strftime("%Y%m%d-%H%M") + (".tar.zst" if use_zstd else ".tar.gz")
     final, part = dest / name, dest / (name + ".part")
@@ -440,7 +441,7 @@ def list_backups(folder):
 
 STEP_NAMES = {"multilib": "Enable multilib", "update": "System update", "yay": "Install yay",
               "native": "Repo packages", "aur": "AUR packages", "flatpak": "Flatpak apps",
-              "files": "Restore files"}
+              "files": "Restore files", "github": "GitHub apps"}
 
 
 def job_restore(job, req):
@@ -529,8 +530,41 @@ def job_restore(job, req):
             raise RuntimeError("tar reported errors")
         job.log(f"{n} files restored into {HOME}")
 
+    def github():
+        entries = req.get("github")
+        if entries is None:
+            entries = (read_manifest(archive) or {}).get("github", [])
+        if not entries:
+            job.log("No GitHub app records in this backup.")
+            return
+        for entry in entries:
+            repo = str(entry.get("repo", ""))
+            if not GH_RE.match(repo):
+                msg = f"invalid GitHub repository record: {repo!r}"
+                failures.append("GitHub: " + msg)
+                job.log("! " + msg)
+                continue
+            mode = entry.get("mode", "asset")
+            if mode == "pkgbuild":
+                msg = f"{repo} uses a PKGBUILD and requires manual review before rebuilding"
+                failures.append("GitHub: " + msg)
+                job.log("! " + msg)
+                continue
+            try:
+                if mode == "clone":
+                    gh_req = {"repo": repo, "mode": "clone"}
+                else:
+                    gh_req = {"repo": repo, "mode": "asset",
+                              "fp": entry.get("fp"), "kind": entry.get("kind")}
+                job.log(f"Restoring GitHub app {repo}…")
+                job_gh_install(job, gh_req)
+            except Exception as e:  # noqa
+                msg = f"{repo}: {e}"
+                failures.append("GitHub: " + msg)
+                job.log("! " + msg)
+
     fns = {"multilib": multilib, "update": update, "yay": yay, "native": native, "aur": aur,
-           "flatpak": flatpak, "files": files}
+           "flatpak": flatpak, "files": files, "github": github}
     plan = [k for k in STEP_NAMES if steps.get(k)]
     for i, k in enumerate(plan):
         job.progress = i / max(len(plan), 1)

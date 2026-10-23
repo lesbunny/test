@@ -51,7 +51,7 @@ async def main():
             async with async_playwright() as p:
                 browser = await p.chromium.launch()
                 page = await browser.new_page(viewport={"width": 1280, "height": 900})
-                page.on("pageerror", lambda exc: errors.append(f"pageerror: {exc}"))
+                page.on("pageerror", lambda exc: errors.append(f"pageerror: {exc}\\nstack: {getattr(exc, 'stack', '')}"))
                 page.on("console", lambda msg: errors.append(f"console: {msg.text}") if msg.type == "error" and "Failed to load resource" not in msg.text and "net::ERR_" not in msg.text else None)
                 response = await page.goto(url, wait_until="domcontentloaded")
                 assert response and response.status == 200, "UI HTML did not return HTTP 200"
@@ -62,6 +62,20 @@ async def main():
 
                 # Let API-backed overview initialize; a backend failure must not blank the whole UI.
                 await page.wait_for_timeout(1500)
+                # Log the actual backend response shapes if frontend rendering regresses.
+                api_shapes = await page.evaluate("""async () => {
+                  const paths=['overview','services','bundles'];
+                  const out={};
+                  for (const p of paths) {
+                    try {
+                      const r=await fetch('/api/'+p,{headers:{'X-Token':TOKEN}});
+                      const d=await r.json();
+                      out[p]={status:r.status,type:Array.isArray(d)?'array':typeof d,keys:Array.isArray(d)?d.length:Object.keys(d),update_list:Array.isArray(d?.update_list),gpu:Array.isArray(d?.gpu)};
+                    } catch(e) { out[p]={error:String(e)}; }
+                  }
+                  return out;
+                }""")
+                print("API response shapes:", api_shapes)
                 assert await page.locator("#ov-tiles").count() == 1, "Overview page wasn't inserted"
                 assert await page.locator("#ov-tiles").is_visible(), "Overview tiles are hidden"
 

@@ -31,7 +31,7 @@ async def main():
         )
         try:
             line = proc.stdout.readline().strip()
-            match = re.search(r"running at (http://127\\.0\\.0\\.1:\\d+/)", line)
+            match = re.search(r"running at (http://127\.0\.0\.1:\d+/)", line)
             if not match:
                 raise RuntimeError(f"App didn't report a local URL: {line!r}")
             url = match.group(1)
@@ -69,7 +69,7 @@ async def main():
                     assert await page.locator(f"#p-{name}").is_visible(), f"Navigation failed for {name}"
 
                 if errors:
-                    raise AssertionError("Browser console errors:\\n" + "\\n".join(errors))
+                    raise AssertionError("Browser console errors:\n" + "\n".join(errors))
                 print("UI browser smoke test passed: initial render, overview, and all navigation pages OK")
                 await browser.close()
         finally:

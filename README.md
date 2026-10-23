@@ -1,6 +1,6 @@
 # Arch Migrate
 
-A single-file Python application for backing up and restoring an Arch/CachyOS home setup and package selections. It includes a package Store, installed-package management, a system overview and service controls, KDE Material You theming, and GitHub release/source installs.
+A single-file Python application for backing up and restoring an Arch home setup and package selections. It includes a package Store, installed-package management, a system overview and service controls, KDE Material You theming, and GitHub release/source installs.
 
 ## Run
 
@@ -29,4 +29,4 @@ python3 -m py_compile arch.py test_gh.py
 python3 test_gh.py
 ```
 
-The UI uses optional remote Google Fonts and Material Symbols. The core app uses Python's standard library.
+The core app uses Python's standard library.

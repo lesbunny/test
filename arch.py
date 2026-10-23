@@ -1365,7 +1365,11 @@ def theme_info():
                         "cursor": kread("Mouse", "cursorTheme", "kcminputrc"),
                         "plasma": kread("Theme", "name", "plasmarc")},
             "schemes": sorted(schemes, key=str.lower), "icons": theme_dirs("icons"),
+            "cursors": theme_dirs("icons"),
             "plasma_themes": theme_dirs("plasma/desktoptheme"),
+            "packages": [{"cat": cat, "items": [{"pkg": pkg, "title": title, "desc": desc}
+                                                  for pkg, title, desc in entries]}
+                         for cat, entries in THEME_PKGS],
             "tools": {t: bool(shutil.which(t)) for t in ("plasma-apply-colorscheme", "plasma-apply-wallpaperimage",
                                                          "plasma-apply-desktoptheme", "plasma-apply-cursortheme",
                                                          "plasma-changeicons")},

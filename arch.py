@@ -2,7 +2,7 @@
 """
 Arch Migrate - back up a CachyOS / Arch install and restore it on a fresh Arch.
 
-  python3 arch.py            # opens the GUI
+  python3 arch.py
   python3 arch.py --no-browser --port 8765
 
 Pure Python standard library. The UI is a local web page (Material You styled)

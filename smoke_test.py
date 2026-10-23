@@ -37,7 +37,6 @@ async def main():
                 raise RuntimeError(f"App didn't report a local URL: {line!r}")
             url = match.group(1)
 
-            # Wait for the server to be ready.
             for _ in range(60):
                 try:
                     with urllib.request.urlopen(url, timeout=1) as response:
@@ -60,9 +59,7 @@ async def main():
                 assert await page.locator(".page.on").is_visible(), "The active page is not visible"
                 assert await page.locator("body").inner_text(), "Page body is empty"
 
-                # Let API-backed overview initialize; a backend failure must not blank the whole UI.
                 await page.wait_for_timeout(1500)
-                # Log the actual backend response shapes if frontend rendering regresses.
                 api_shapes = await page.evaluate("""async () => {
                   const paths=['overview','services','bundles'];
                   const out={};

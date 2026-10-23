@@ -91,7 +91,7 @@ am.GH_API = BASE
 am.gh_url_ok = lambda u: u.startswith("http://127.0.0.1")   # test-only: real one allows github hosts only
 
 # real gh_url_ok behaviour (re-import to test the production function)
-spec2 = importlib.util.spec_from_file_location("am2", "/tmp/work/arch-migrate.py"); am2 = importlib.util.module_from_spec(spec2); spec2.loader.exec_module(am2)
+spec2 = importlib.util.spec_from_file_location("am2", str(Path(__file__).with_name("arch.py"))); am2 = importlib.util.module_from_spec(spec2); spec2.loader.exec_module(am2)
 for u, ok in (("https://github.com/a/b/releases/download/v1/x", True), ("https://objects.githubusercontent.com/x", True),
               ("https://release-assets.githubusercontent.com/x", True), ("http://github.com/x", False),
               ("https://evilgithub.com/x", False), ("https://github.com.evil.io/x", False), ("https://evil.io/github.com", False)):

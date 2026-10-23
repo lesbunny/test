@@ -3,7 +3,7 @@
 Arch Migrate - back up a CachyOS / Arch install and restore it on a fresh Arch.
 
   python3 arch.py            # opens the GUI
-  python3 arch-migrate.py --no-browser --port 8765
+  python3 arch.py --no-browser --port 8765
 
 Pure Python standard library. The UI is a local web page (Material You styled)
 served on 127.0.0.1 only and protected by a random per-run token.
@@ -1037,6 +1037,12 @@ def job_manage(job, req):
                      "--save", "/etc/pacman.d/mirrorlist"]) != 0:
             raise RuntimeError("reflector failed to refresh mirrors")
         job.log("Mirror list refreshed.")
+    elif kind == "ghinstall":
+        job_gh_install(job, req)
+    elif kind == "ghupdate":
+        gh_update(job, str(req.get("repo", "")))
+    elif kind == "ghremove":
+        gh_remove(job, str(req.get("repo", "")))
     else:
         raise RuntimeError("unknown task")
 

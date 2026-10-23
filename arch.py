@@ -17,13 +17,12 @@ from pathlib import Path
 HOME = Path.home()
 USER = os.environ.get("USER") or HOME.name
 TOKEN = secrets.token_urlsafe(24)
-PASSWORD = None          # sudo password, memory only
+PASSWORD = None
 AUTHED = False
 PORT = 0
 TMP = Path(tempfile.mkdtemp(prefix="archmig-"))
 atexit.register(lambda: shutil.rmtree(TMP, ignore_errors=True))
 
-# ------------------------------------------------------------------ helpers
 ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 NAME_OK = re.compile(r"^[A-Za-z0-9@._+\-]+$")
 
@@ -77,7 +76,6 @@ def child_env():
     return env
 
 
-# ------------------------------------------------------------------ jobs
 class Job:
     def __init__(self, title):
         self.id = secrets.token_hex(4)
@@ -115,7 +113,7 @@ def start_job(title, fn, *args):
             if j.status == "running":
                 j.status = "done"
             j.progress = 1.0
-        except Exception as e:  # noqa
+        except Exception as e:
             j.log(f"ERROR: {e}")
             j.status = "error"
 
@@ -168,7 +166,6 @@ def ensure_yay(job):
     return True
 
 
-# ------------------------------------------------------------------ file selection
 SKIP_DIRS = {"Cache", "cache", "Code Cache", "GPUCache", "CachedData", "Crash Reports", "ShaderCache",
              "DawnCache", "GrShaderCache", "GraphiteDawnCache", "Trash", "node_modules", "__pycache__", ".cache"}
 STEAM_SKIP = {"common", "shadercache", "downloading", "temp"}
@@ -306,7 +303,6 @@ def do_scan():
     return {"items": items, "packages": {"native": native, "aur": aur, "flatpak": flat}, "off": off}
 
 
-# ------------------------------------------------------------------ backup
 class Exact:
     """File wrapper that always yields exactly `size` bytes (live files may grow/shrink/err while we read)."""
 
@@ -416,7 +412,6 @@ def job_backup(job, req):
         job.log(f"{bad} files could not be read and were skipped.")
 
 
-# ------------------------------------------------------------------ restore
 def read_manifest(f):
     side = f.with_name(f.name + ".json")
     try:
@@ -558,7 +553,7 @@ def job_restore(job, req):
                               "fp": entry.get("fp"), "kind": entry.get("kind")}
                 job.log(f"Restoring GitHub app {repo}…")
                 job_gh_install(job, gh_req)
-            except Exception as e:  # noqa
+            except Exception as e:
                 msg = f"{repo}: {e}"
                 failures.append("GitHub: " + msg)
                 job.log("! " + msg)
@@ -572,7 +567,7 @@ def job_restore(job, req):
         job.log(f"\n=== {STEP_NAMES[k]} ===")
         try:
             fns[k]()
-        except Exception as e:  # noqa
+        except Exception as e:
             job.log(f"! {e}")
             failures.append(f"{STEP_NAMES[k]}: {e}")
     job.result = {"failed": failures}
@@ -590,8 +585,6 @@ def job_install(job, names):
     job.log("Done.")
 
 
-# ------------------------------------------------------------------ store
-# Entries are (package, title, description). "flatpak:<id>" installs from Flathub.
 CATALOG = [
     ("Browsers", "language", [
         ("firefox", "Firefox", "Fast, private, open-source browser"),
@@ -941,7 +934,6 @@ def search(q):
     return res
 
 
-# ------------------------------------------------------------------ manage (inventory / remove)
 UNITS = {"B": 1, "KiB": 1024, "MiB": 1048576, "GiB": 1073741824, "TiB": 1099511627776}
 
 
@@ -1080,7 +1072,6 @@ def job_manage(job, req):
     else:
         raise RuntimeError("unknown task")
 
-# ------------------------------------------------------------------ overview / services / bundles
 SERVICES = [
     ("NetworkManager.service", "Network", "Ethernet and Wi-Fi"),
     ("bluetooth.service", "Bluetooth", "Needs bluez + bluez-utils"),
@@ -1198,7 +1189,6 @@ def overview():
             if Path("/var/cache/pacman/pkg").is_dir() else 0}
 
 
-# ------------------------------------------------------------------ themes (KDE Material You)
 THEME_DIR = HOME / ".config" / "arch-migrate"
 GTK_BEGIN, GTK_END = "/* arch-migrate material-you begin */", "/* arch-migrate material-you end */"
 
@@ -1480,9 +1470,6 @@ def job_bundle(job, req):
     job_install(job, bundle[4])
 
 
-# ------------------------------------------------------------------ GitHub apps
-# ARCHMIG_GH_API only exists so the API can be pointed at a test server. Downloads are
-# still restricted to github.com / *.githubusercontent.com by gh_url_ok().
 GH_API = os.environ.get("ARCHMIG_GH_API", "https://api.github.com")
 GH_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,100}/[A-Za-z0-9_.\-]{1,100}$")
 GH_REG = THEME_DIR / "github-apps.json"
@@ -1520,7 +1507,7 @@ def gh_get(path, timeout=15):
         if e.code == 404:
             raise RuntimeError("Not found on GitHub")
         raise RuntimeError(f"GitHub returned {e.code}")
-    except Exception as e:  # noqa
+    except Exception as e:
         raise RuntimeError("Couldn't reach GitHub: " + str(e))
 
 
@@ -1869,14 +1856,14 @@ def gh_apps_state(check):
             try:
                 rel = gh_release(e["repo"])
                 item["latest"], item["update"] = rel["tag"], rel["tag"] != e.get("tag")
-            except Exception as ex:  # noqa
+            except Exception as ex:
                 item["error"] = str(ex)
         elif check and e.get("mode") == "pkgbuild":
             try:
                 c = gh_get(f"/repos/{e['repo']}/commits?per_page=1")
                 sha7 = c[0]["sha"][:7] if c else ""
                 item["latest"], item["update"] = sha7, bool(sha7) and sha7 != e.get("tag")
-            except Exception as ex:  # noqa
+            except Exception as ex:
                 item["error"] = str(ex)
         out.append(item)
     return out
@@ -1922,7 +1909,6 @@ def gh_remove(job, repo):
     job.log("Removed.")
 
 
-# ------------------------------------------------------------------ AUR details / bundle contents
 def aur_info(name):
     if not NAME_OK.match(name):
         raise RuntimeError("bad package name")
@@ -1931,7 +1917,7 @@ def aur_info(name):
         with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "arch-migrate"}),
                                     timeout=12) as r:
             res = json.load(r).get("results", [])
-    except Exception as e:  # noqa
+    except Exception as e:
         raise RuntimeError("Couldn't reach the AUR: " + str(e))
     if not res:
         raise RuntimeError("Not found on the AUR")
@@ -2003,7 +1989,6 @@ def bundle_detail(bid):
                    "found": n in sync or n in inst})
     return {"id": bid, "title": bd[1], "desc": bd[3], "pkgs": pk, "synced": bool(sync)}
 
-# ------------------------------------------------------------------ http
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -2038,7 +2023,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._send({"error": "forbidden"}, code=403)
         try:
             self._send(self.get(u.path[5:], q))
-        except Exception as e:  # noqa
+        except Exception as e:
             self._send({"error": str(e)}, code=500)
 
     def do_POST(self):
@@ -2052,7 +2037,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(self.post(self.path[5:], body))
         except Busy as e:
             self._send({"error": str(e)}, code=409)
-        except Exception as e:  # noqa
+        except Exception as e:
             self._send({"error": str(e)}, code=500)
 
     def get(self, path, q):
@@ -2174,7 +2159,6 @@ class Handler(BaseHTTPRequestHandler):
         raise RuntimeError("unknown endpoint")
 
 
-# ------------------------------------------------------------------ UI
 INDEX = r'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -2711,7 +2695,6 @@ $('#gh-installed').onclick=async e=>{
 '''
 
 
-# ------------------------------------------------------------------ main
 def open_ui(url):
     for b in ("chromium", "google-chrome-stable", "brave", "vivaldi-stable", "microsoft-edge-stable"):
         p = shutil.which(b)

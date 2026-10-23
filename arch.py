@@ -2291,7 +2291,7 @@ select.field{appearance:none;cursor:pointer;padding-right:36px;background-image:
 #gh-search-note{font-size:12px;margin:10px 0;color:var(--onv)}
 #gh-q{flex:1;min-width:120px}
 #gh-search{white-space:nowrap}
-</head><body>
+</style></head><body>
 <div class="app">
 <nav class="rail">
  <div class="logo"><span class="ms fill">swap_horiz</span></div>

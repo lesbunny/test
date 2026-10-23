@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Compile application and tests
-        run: python -m py_compile arch.py test_gh.py
+        run: python -m py_compile arch.py test_gh.py smoke_test.py
       - name: Validate embedded JavaScript syntax
         run: |
           python - <<'PY'
@@ -32,5 +32,11 @@ jobs:
           open("/tmp/arch-ui.js", "w", encoding="utf-8").write(matches[0])
           PY
           node --check /tmp/arch-ui.js
+      - name: Install browser smoke-test dependencies
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Run browser UI smoke test
+        run: python smoke_test.py
       - name: Run GitHub integration regression tests
         run: python test_gh.py

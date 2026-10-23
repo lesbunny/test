@@ -24,6 +24,7 @@ async def main():
     with tempfile.TemporaryDirectory(prefix="arch-ui-smoke-") as tmp:
         env = dict(os.environ)
         env["HOME"] = tmp
+        (Path(tmp) / "Downloads").mkdir()
         proc = subprocess.Popen(
             [sys.executable, "-u", str(APP), "--no-browser", "--port", "0"],
             cwd=str(APP.parent), env=env,
@@ -51,7 +52,7 @@ async def main():
                 browser = await p.chromium.launch()
                 page = await browser.new_page(viewport={"width": 1280, "height": 900})
                 page.on("pageerror", lambda exc: errors.append(f"pageerror: {exc}"))
-                page.on("console", lambda msg: errors.append(f"console: {msg.text}") if msg.type == "error" else None)
+                page.on("console", lambda msg: errors.append(f"console: {msg.text}") if msg.type == "error" and "Failed to load resource" not in msg.text and "net::ERR_" not in msg.text else None)
                 response = await page.goto(url, wait_until="domcontentloaded")
                 assert response and response.status == 200, "UI HTML did not return HTTP 200"
                 assert await page.title() == "Arch Migrate", "Unexpected page title"

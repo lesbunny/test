@@ -825,7 +825,8 @@
     if(item.trackedKills!==null&&Number(item.trackedKills)>=500)return false;
     if(item.trackedKillsUnknown)return false;
     const roll=assessRoll(item);
-    return roll.status!=='good'&&roll.status!=='avoid';
+    // choosy-only entries are likely trash candidates; only default wishlist keepers are excluded from moving aside.
+    return roll.status!=='good';
   }
   function farmSort(a,b) {
     const score=i=>{

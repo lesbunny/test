@@ -108,3 +108,14 @@
   .ll-roll-source-state { align-items:flex-start; flex-wrap:wrap; }
   .ll-modal-actions .button { flex:1; }
 }
+.ll-fuel-diagnostics { margin-top:15px; }
+.ll-fuel-list { display:flex; flex-direction:column; }
+.ll-fuel-row { display:flex; align-items:flex-start; gap:11px; padding:13px 0; border-bottom:1px solid var(--line); }
+.ll-fuel-row:last-child { border-bottom:0; }
+.ll-fuel-mark { flex:none; width:25px; height:25px; display:grid; place-items:center; border-radius:8px; background:#2d2934; color:var(--muted); font-size:13px; font-weight:900; }
+.ll-fuel-mark.good { background:#1d3b31; color:var(--ll-green); }
+.ll-fuel-mark.warn { background:#463724; color:var(--ll-yellow); }
+.ll-fuel-copy { min-width:0; display:flex; flex-direction:column; gap:4px; flex:1; }
+.ll-fuel-copy b { font-size:12px; line-height:1.5; }
+.ll-fuel-copy small { color:var(--muted); font-size:11px; line-height:1.55; overflow-wrap:anywhere; }
+

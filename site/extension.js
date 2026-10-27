@@ -90,7 +90,7 @@
     if(!s.farm)s.farm={owner:'Hunter',spaces:1,includeWeapons:true,includeArmor:true,includeUtility:true,enabled:false};
     return s;
   }
-  function isConnected() { return live.connected && !!tokenState() && !!live.membership; }
+  function isConnected() { return state().source==='bungie' && live.connected && !!tokenState() && !!live.membership; }
   function needConnection() {
     if(isConnected())return true;
     LL.toast('Connect a Bungie account first. Sample and imported data cannot perform live actions.','error');
@@ -205,7 +205,7 @@
     live.pendingAction=action;
     document.getElementById('modal').innerHTML=
       '<div class="ll-modal-head"><span class="ll-eyebrow">CONFIRM LIVE ACTION</span><button class="icon-button" data-action="close-modal">×</button></div>'+
-      '<h2 id="modalTitle">'+h(title)+'</h2><p>'+h(description)+'</p>'+
+      '<h2 id="modalTitle">'+h(title)+'</h2><p class="operation-preview">'+h(description)+'</p>'+
       '<div class="ll-security-note"><b>Nothing is dismantled.</b> The app will only use Bungie’s documented inventory move/equip endpoints. Review the move list carefully before continuing.</div>'+
       '<div class="ll-modal-actions"><button class="button button-quiet" data-action="close-modal">Cancel</button><button class="button" data-action="confirm-live-action">'+h(label||'Confirm & run')+'</button></div>';
     document.getElementById('modalScrim').hidden=false;
@@ -350,45 +350,22 @@
     setStatus('Loading Destiny item definitions…');
     const manifest=await bungieRequest('/Destiny2/Manifest/',{auth:false});
     live.version=String(manifest.version||'');
-    const worldPaths=manifest.jsonWorldContentPaths&&manifest.jsonWorldContentPaths.en||{};
-    const componentPaths=manifest.jsonWorldComponentContentPaths&&manifest.jsonWorldComponentContentPaths.en||{};
-    // Item definitions must come from the full world-content database. Component
-    // paths are a separate lightweight database and must never override these URLs.
-    const itemDefinitionPath=componentPaths.DestinyInventoryItemDefinition||worldPaths.DestinyInventoryItemDefinition;
-    if(!itemDefinitionPath)throw new Error('Bungie’s manifest response did not include the full item definitions.');
-    const base='https://www.bungie.net';
-    const makeUrl=p=>/^https?:/i.test(p)?p:new URL(p,base).href;
-    const itemUrl=makeUrl(itemDefinitionPath);
-    const statPath=componentPaths.DestinyStatDefinition||worldPaths.DestinyStatDefinition;
-    const bucketPath=componentPaths.DestinyInventoryBucketDefinition||worldPaths.DestinyInventoryBucketDefinition;
-    const statUrl=statPath?makeUrl(statPath):null;
-    const bucketUrl=bucketPath?makeUrl(bucketPath):null;
-    const results=await Promise.all([
-      fetchJsonCached(itemUrl),
-      statUrl?fetchJsonCached(statUrl):Promise.resolve({}),
-      bucketUrl?fetchJsonCached(bucketUrl):Promise.resolve({})
-    ]);
-    const itemDefs=results[0];
-    const sample= itemDefs && Object.values(itemDefs).find(d=>d&&d.displayProperties&&d.displayProperties.name);
-    if(!itemDefs||typeof itemDefs!=='object'||!sample) {
-      if(window.caches)try{const cache=await caches.open(CACHE_NAME);await cache.delete(itemUrl);}catch(_){}
-      throw new Error('Bungie returned an invalid item-definition database. Reload the page and try Load inventory again.');
-    }
-    function unwrapDefs(data, tableName) {
-      if(!data||typeof data!=='object')return null;
-      const sample=Object.values(data).find(d=>d&&d.displayProperties&&d.displayProperties.name);
-      if(sample)return data;
-      if(tableName&&data[tableName]&&typeof data[tableName]==='object'){
-        const nested=data[tableName];
-        if(Object.values(nested).find(d=>d&&d.displayProperties&&d.displayProperties.name))return nested;
+    const paths=manifest.jsonWorldComponentContentPaths?.en||{};
+    const worldPath=manifest.jsonWorldContentPaths?.en;
+    const tables=['DestinyInventoryItemDefinition','DestinyStatDefinition','DestinyInventoryBucketDefinition'];
+    const world = !tables.every(table=>paths[table]) && worldPath
+      ? await fetchJsonCached(new URL(worldPath,'https://www.bungie.net').href) : null;
+    const results=await Promise.all(tables.map(async table=>{
+      const data=paths[table]
+        ? await fetchJsonCached(new URL(paths[table],'https://www.bungie.net').href) : world;
+      const defs=window.InventoryCore.unwrapDefinitions(data,table);
+      if(!defs) {
+        if((paths[table]||worldPath)&&window.caches)try{const cache=await caches.open(CACHE_NAME);await cache.delete(new URL(paths[table]||worldPath,'https://www.bungie.net').href);}catch(_){}
+        throw new Error('Missing or invalid '+table+'. Retry loading inventory to download fresh game data.');
       }
-      if(data.Response)return unwrapDefs(data.Response, tableName);
-      return null;
-    }
-    itemDefs=unwrapDefs(itemDefs,'DestinyInventoryItemDefinition')||itemDefs;
-    live.itemDefs=itemDefs;
-    live.statDefs=unwrapDefs(results[1],'DestinyStatDefinition')||results[1]||{};
-    live.bucketDefs=unwrapDefs(results[2],'DestinyInventoryBucketDefinition')||results[2]||{};
+      return defs;
+    }));
+    [live.itemDefs,live.statDefs,live.bucketDefs]=results;
     setStatus('Destiny definitions loaded');
   }
   async function findMemberships() {
@@ -524,9 +501,8 @@
     return c&&c.data&&c.data[String(itemId)]||{};
   }
   function componentStatName(hash) {
-    if(STAT_NAMES[Number(hash)])return STAT_NAMES[Number(hash)];
     const def=live.statDefs&&live.statDefs[String(hash)];
-    return def&&def.displayProperties&&def.displayProperties.name||String(hash);
+    return def&&def.displayProperties&&def.displayProperties.name||STAT_NAMES[Number(hash)]||String(hash);
   }
   function componentPerkName(hash) {
     const def=definitionFor(hash);
@@ -577,32 +553,33 @@
         const statValues={};
         Object.entries(stats.stats||{}).forEach(([hash,value])=>{
           const name=componentStatName(hash);
-          if(STAT_NAMES[Number(hash)])statValues[name]=Number(value&&value.value!==undefined?value.value:value)||0;
+          if(name)statValues[name]=Number(value&&value.value!==undefined?value.value:value)||0;
         });
         const flags=Number(raw.state!==undefined?raw.state:(inst.state||0));
         const name=(def.displayProperties&&def.displayProperties.name&&String(def.displayProperties.name).trim())||def.displayName||def.itemTypeDisplayName||('Item #'+raw.itemHash);
         const iconPath=def.displayProperties&&def.displayProperties.icon||'';
         const icon=iconPath?(/^(?:https?:)?\/\//i.test(iconPath)?iconPath:'https://www.bungie.net'+(iconPath.startsWith('/')?'':'/')+iconPath):'';
         const type=isPostmaster?'Postmaster':gearBucket;
-        const isExotic=/exotic/i.test(def.itemTypeAndTierDisplayName||'')||/exotic/i.test(def.itemTypeDisplayName||'');
+        const isExotic=Number(def.inventory?.tierType)===6||/exotic/i.test(def.itemTypeAndTierDisplayName||'')||/exotic/i.test(def.itemTypeDisplayName||'');
         const kills=itemKillCount(raw,inst,objectives,stats);
         const tracked=!!(flags&2)||!!inst.isTracked||!!inst.tracked;
         all.push({
-          id:id,itemInstanceId:iid,itemHash:String(raw.itemHash),bucket:type,gearBucket,type:WEAPON_BUCKETS.includes(gearBucket)?'Weapon':ARMOR_BUCKETS.includes(gearBucket)?'Armor':String(def.itemTypeDisplayName||'Item'),
+          id:id,name,definitionMissing:!def.displayProperties?.name,classType:Number(def.classType??3),itemInstanceId:iid,itemHash:String(raw.itemHash),bucket:type,gearBucket,type:WEAPON_BUCKETS.includes(gearBucket)?'Weapon':ARMOR_BUCKETS.includes(gearBucket)?'Armor':String(def.itemTypeDisplayName||'Item'),
           owner:isVault?'Vault':owner,characterId:isVault?'':String(characterId||''),bucketHash:Number(raw.bucketHash||defBucket),
           quantity:Number(raw.quantity||1),power:Number(inst.primaryStat&&inst.primaryStat.value||raw.primaryStat&&raw.primaryStat.value||0),
-          rarity:String(def.itemTypeAndTierDisplayName||'Legendary'),equipped:!isVault&&!isPostmaster&&equipIds.has(id),
-          locked:!!(flags&1)||!!raw.locked,tracked,trackedKills:kills,trackedKillsUnknown:tracked&&kills===null,
+          rarity:String(def.inventory?.tierTypeName||({6:'Exotic',5:'Legendary',4:'Rare',3:'Uncommon',2:'Common'})[def.inventory?.tierType]||'Unknown'),equipped:!isVault&&!isPostmaster&&equipIds.has(id),
+          locked:!!(flags&1)||!!raw.locked,tracked,crafted:!!(flags&8),trackedKills:kills,trackedKillsUnknown:tracked&&kills===null,
           tags:[],notes:'',perks,perkHashes:activePlugs,stats:statValues,
           icon:icon,exotic:isExotic,transferable:raw.transferStatus===undefined?true:Number(raw.transferStatus)===0,
-          transferStatus:raw.transferStatus,canEquip:inst.canEquip,damageType:Number(inst.damageType||0),definitionDescription:String(def.description||''),
+          transferStatus:raw.transferStatus,canEquip:inst.canEquip,damageType:Number(inst.damageType||0),definitionDescription:String(def.displayProperties?.description||''),
           itemCategory:String(def.itemTypeDisplayName||''),isPostmaster, isLiveItem:true
         });
       });
     }
     const chars=profile.characterInventories&&profile.characterInventories.data||{};
     const vault=profile.profileInventory&&profile.profileInventory.data&&profile.profileInventory.data.items||[];
-    Object.entries(chars).forEach(([characterId,group])=>{
+    unique([...Object.keys(chars),...Object.keys(equipment)]).forEach(characterId=>{
+      const group=chars[characterId]||{};
       const c=live.characters.find(x=>String(x.characterId)===String(characterId));
       const owner=c?c.name:'Guardian';
       addGroup(group.items||[],owner,characterId,false);
@@ -635,7 +612,7 @@
       const opts=connected?live.characters.map(c=>'<option value="'+h(c.characterId)+'" '+(String(c.characterId)===current?'selected':'')+'>'+h(c.name)+' · '+h(c.light)+' power</option>').join(''):
         LL.ownerNames().filter(n=>n!=='Vault').map(n=>'<option value="'+h(n)+'" '+(n===current?'selected':'')+'>'+h(n)+' (local)</option>').join('');
       picker.innerHTML=opts||'<option value="">Select Guardian</option>';
-      picker.disabled=connected?!live.characters.length:!opts;
+      picker.disabled=live.busy||(connected?!live.characters.length:!opts);
     }
     const pCount=document.getElementById('postmasterNavCount');
     if(pCount)pCount.textContent=String(state().items.filter(i=>i.isPostmaster||i.bucket==='Postmaster').length);
@@ -682,8 +659,7 @@
     return {ok:true,reason:'No protected roll or safety flag found'};
   }
   function totalStats(item) {
-    const s=item&&item.stats||{};
-    return ['Mobility','Resilience','Recovery','Discipline','Intellect','Strength'].reduce((sum,k)=>sum+(Number(s[k])||0),0);
+    return window.InventoryCore.total(item||{});
   }
   function isJunkListed(item) { return shardIds().has(String(item.id)); }
   function addToShardList(id) {
@@ -840,24 +816,19 @@
       '<div class="ll-live-notice"><span class="ll-max-power-icon">✦</span><span><b>'+h(char?char.name:'Select a Guardian')+'</b><small>Current character light: '+(char?fmt(char.light):'—')+' · set covers '+plans.rows.length+' equipment slots</small></span><span class="ll-spacer"></span><b>'+set+'/8</b></div>'+
       '<section class="panel"><div class="panel-head"><div><h2>Highest-power pick by slot</h2><p>Preview only—nothing moves until you confirm the action below.</p></div></div>'+
         (rows||'<div class="empty-state">No eligible items in the current inventory.</div>')+
-        '<div class="ll-small-warning" style="margin-top:14px">This chooses the highest displayed power per bucket. It does not calculate the game’s full pinnacle/engram reward algorithm and will not take an item away from another Guardian if that item is equipped.</div>'+
+        '<div class="ll-small-warning" style="margin-top:14px">This maximizes total displayed power with at most one exotic weapon and one exotic armor piece. It does not calculate the game’s full pinnacle/engram reward algorithm and will not take an item away from another Guardian if that item is equipped.</div>'+
         '<div class="ll-page-actions">'+btn('apply-max-power','Equip maximum-power set ('+set+' slots)',!isConnected()||!set,'')+btn('go-bulk','Back to bulk actions',false,'button-quiet')+'</div></section>';
   }
   function buildMaxPowerPlan() {
     const char=getSelectedCharacter();
+    const candidates=state().items.filter(i=>isGear(i)&&!i.isPostmaster&&i.isLiveItem&&classCanUse(i,char)&&(
+      (char&&String(i.characterId)===String(char.characterId))||(!i.equipped&&normalizeTransferable(i))
+    ));
+    const picks=window.InventoryCore.powerSet(candidates);
     const rows=GEAR_BUCKETS.map(bucket=>{
       const current=char?equippedItem(char.characterId,bucket):null;
-      const candidates=state().items.filter(i=>isGear(i)&&bucketFor(i)===bucket&&!i.isPostmaster&&i.isLiveItem&&normalizeTransferable(i)&&classCanUse(i,char)&&(
-        i.owner==='Vault'||(char&&String(i.characterId)===String(char.characterId)&&!i.isPostmaster)||(!i.equipped&&i.owner!=='Vault')
-      )).sort((a,b)=>{
-        const powerDifference=Number(b.power)-Number(a.power);
-        if(powerDifference)return powerDifference;
-        const aIsWorn=!!(char&&a.equipped&&String(a.characterId)===String(char.characterId));
-        const bIsWorn=!!(char&&b.equipped&&String(b.characterId)===String(char.characterId));
-        return Number(bIsWorn)-Number(aIsWorn);
-      });
-      const item=candidates[0]||null;
-      return {bucket,current:Number(current&&current.power||0),item,improvement:item?Number(item.power||0)-Number(current&&current.power||0):null};
+      const item=picks.find(i=>bucketFor(i)===bucket)||null;
+      return {bucket,current:Number(current?.power||0),item,improvement:item?Number(item.power||0)-Number(current?.power||0):null};
     });
     return {rows};
   }
@@ -1112,6 +1083,8 @@
   async function moveToVault(item) {
     if(!item||!item.itemHash||!item.itemInstanceId)throw new Error('This item lacks the instance ID required for a live transfer.');
     if(item.owner==='Vault')return;
+    if(item.equipped||!normalizeTransferable(item))throw new Error('This item cannot currently be transferred.');
+    if(vaultFree()<=0)throw new Error('The Vault is full.');
     if(item.isPostmaster)throw new Error('Postmaster items must be pulled to their character first.');
     const characterId=ownerCharacterId(item);
     if(!characterId)throw new Error('Could not identify which character owns this item.');
@@ -1121,11 +1094,12 @@
   async function moveFromVaultToCharacter(item,characterId) {
     if(!item||!item.itemHash||!item.itemInstanceId)throw new Error('This item lacks the instance ID required for a live transfer.');
     if(item.owner!=='Vault')throw new Error('Only Vault items can use the direct Vault-to-Guardian transfer.');
+    if(!normalizeTransferable(item))throw new Error('This item cannot currently be transferred.');
     const body={itemReferenceHash:Number(item.itemHash),stackSize:Number(item.quantity||1),transferToVault:false,itemId:String(item.itemInstanceId),characterId:String(characterId),membershipType:Number(live.membership.membershipType)};
     await bungieRequest('/Destiny2/Actions/Items/TransferItem/',{method:'POST',body});
   }
   async function pullFromPostmaster(item) {
-    if(!needConnection())return;
+    if(!needConnection()||live.busy)return;
     if(!item||!item.isPostmaster)throw new Error('That item is not in a Postmaster.');
     const characterId=ownerCharacterId(item);
     if(!characterId)throw new Error('Could not identify the Postmaster owner.');
@@ -1271,7 +1245,7 @@
     const char=getSelectedCharacter();
     if(!char)throw new Error('No selected Guardian.');
     const plan=buildMaxPowerPlan();
-    const picked=plan.rows.filter(r=>r.item&&(payload.ids||[]).includes(r.item.id));
+    const picked=plan.rows.filter(r=>r.item&&(payload.ids||[]).includes(r.item.id)).sort((a,b)=>Number(a.item.exotic)-Number(b.item.exotic));
     const errors=[];
     for(let n=0;n<picked.length;n++) {
       const row=picked[n];let item=getItem(row.item.id);
@@ -1367,6 +1341,33 @@
     try { if(target!==item.owner)await moveLiveItem(item,target); }
     catch(err) {LL.toast('Tags saved, but the live move failed: '+(err&&err.message||String(err)),'error');}
     if(document.querySelector('.detail-sheet'))LL.openItem(item.id);
+  }
+
+  function prepareLoadout(id) {
+    if(!needConnection()||live.busy)return;
+    const loadout=state().loadouts.find(l=>l.id===id);
+    const character=getSelectedCharacter();
+    if(!loadout||!character)throw new Error('Select a Guardian and a saved loadout.');
+    const items=(loadout.itemIds||[]).map(getItem);
+    if(items.some(i=>!i))throw new Error('Some saved items are missing. Inspect this loadout before applying it.');
+    const gear=items.filter(isGear);
+    if(!gear.length)throw new Error('This snapshot has no weapons or armor.');
+    if(gear.some(i=>!i.isLiveItem||!i.itemInstanceId||i.isPostmaster||!classCanUse(i,character)))throw new Error('Some gear is unavailable or belongs to another class.');
+    if(gear.some(i=>i.equipped&&String(i.characterId)!==String(character.characterId)))throw new Error('Unequip this loadout’s items on other Guardians first.');
+    if(new Set(gear.map(bucketFor)).size!==gear.length)throw new Error('This loadout has multiple items for the same slot.');
+    for(const type of [isWeapon,isArmor])if(gear.filter(i=>type(i)&&i.exotic).length>1)throw new Error('A loadout can contain at most one exotic weapon and one exotic armor piece.');
+    openConfirm('Equip '+loadout.name+'?',gear.map(i=>i.name+' · '+i.owner+' → '+character.name).join('\n')+'\nOnly weapons and armor will be restored. Mods and subclass settings stay as they are.',{type:'loadout',ids:gear.map(i=>i.id),characterId:character.characterId},'Equip gear');
+  }
+  async function executeLoadout(payload) {
+    if(String(getSelectedCharacter()?.characterId)!==String(payload.characterId))throw new Error('Selected Guardian changed. Preview the loadout again.');
+    // Equip legendaries first so a previous exotic can be replaced before its new counterpart.
+    const items=payload.ids.map(getItem).filter(Boolean).sort((a,b)=>Number(a.exotic)-Number(b.exotic));
+    await executeSequential('Apply gear loadout',items,async item=>{
+      const current=getItem(item.id);
+      if(!current)throw new Error('Item no longer available');
+      if(current.equipped&&String(current.characterId)===String(payload.characterId))return;
+      await setLiveEquip(current);
+    });
   }
 
   function assessRoll(item) {
@@ -1562,6 +1563,11 @@
     if(!actions)return;
     const area=document.createElement('div');
     area.className='ll-inspector-extensions';
+    if(item.isLiveItem){
+      const tip=sheet.querySelector('.form-tip');if(tip)tip.textContent=isConnected()?'Connected to Bungie. Moves, locks and equipment changes affect Destiny 2.':'Saved Bungie snapshot. Reconnect to make changes.';
+      const equip=sheet.querySelector('[data-action="toggle-equip"]');if(equip)equip.textContent=item.equipped?'Already equipped':'Equip in Destiny';
+      const move=sheet.querySelector('[data-action="move-item"]');if(move)move.textContent='Move in Destiny';
+    }
     if(isConnected()&&item.isLiveItem) {
       if(!isJunkListed(item)) {
         const safe=safeToStage(item);
@@ -1598,7 +1604,7 @@
     LL.toast('Disconnected from Bungie. The last synced inventory stays as a local snapshot.','success');
   }
   function showHelpModal() {
-    document.getElementById('modal').innerHTML='<div class="ll-modal-head"><span class="ll-eyebrow">LITTLE LIGHT</span><button class="icon-button" data-action="close-modal">×</button></div><h2 id="modalTitle">About the live connection</h2><p>Little Light uses Bungie’s documented OAuth and Destiny inventory endpoints through your Cloudflare Worker. Your Bungie API key and OAuth client secret stay in Cloudflare Worker secrets; only the Worker URL is stored in local browser preferences.</p><div class="ll-security-note"><b>Important API boundary:</b> this version can read inventory and use documented TransferItem, PullFromPostmaster, EquipItem, and SetLockState endpoints. The public Destiny API does not expose a dismantle-item endpoint, so dismantling stays in-game.</div><div class="help-links"><a href="https://github.com/Bungie-net/api/wiki/OAuth-Documentation" target="_blank" rel="noreferrer">Bungie OAuth documentation ↗</a><a href="https://bungie-net.github.io/" target="_blank" rel="noreferrer">Official API reference ↗</a><a href="https://github.com/48klocs/dim-wish-list-sources" target="_blank" rel="noreferrer">Community wishlist data ↗</a></div><div class="ll-modal-actions"><button class="button" data-action="close-modal">Got it</button></div>';
+    document.getElementById('modal').innerHTML='<div class="ll-modal-head"><span class="ll-eyebrow">LITTLE LIGHT</span><button class="icon-button" data-action="close-modal">×</button></div><h2 id="modalTitle">About the live connection</h2><p>Little Light connects directly to Bungie using a Public OAuth client. The public API key and client ID stay in this browser; your access token stays in this tab’s session. No client secret or server is required.</p><div class="ll-security-note"><b>Important API boundary:</b> this version can read inventory and use documented TransferItem, PullFromPostmaster, EquipItem, and SetLockState endpoints. The public Destiny API does not expose a dismantle-item endpoint, so dismantling stays in-game.</div><div class="help-links"><a href="https://github.com/Bungie-net/api/wiki/OAuth-Documentation" target="_blank" rel="noreferrer">Bungie OAuth documentation ↗</a><a href="https://bungie-net.github.io/" target="_blank" rel="noreferrer">Official API reference ↗</a><a href="https://github.com/48klocs/dim-wish-list-sources" target="_blank" rel="noreferrer">Community wishlist data ↗</a></div><div class="ll-modal-actions"><button class="button" data-action="close-modal">Got it</button></div>';
     document.getElementById('modalScrim').hidden=false;
   }
 
@@ -1616,6 +1622,7 @@
   }
 
   const handlers = {
+    'apply-loadout':async(button)=>prepareLoadout(button.dataset.id),
     'connect-bungie':async()=>{openConnectModal();},
     'change-bungie-settings':async()=>openConnectModal('Update your Bungie credentials.',true),
     'save-bungie-settings':saveSettingsAndConnect,
@@ -1641,7 +1648,8 @@
     'confirm-live-action':async()=>{
       const p=live.pendingAction;live.pendingAction=null;closeModal();
       if(!p)return;
-      if(p.type==='move-all-vault')await executeMoveAll(p);
+      if(p.type==='loadout')await executeLoadout(p);
+      else if(p.type==='move-all-vault')await executeMoveAll(p);
       else if(p.type==='prep-shard') {
         try{await executePrepShard(p);}catch(err){live.busy=false;live.operation='';await refreshProfileOnly().catch(()=>{});updateHeader();LL.renderPage();LL.toast('Could not prepare the Shard List: '+(err&&err.message||String(err)),'error');}
       } else if(p.type==='stage-fuel')await executeStageFuel(p);
@@ -1690,17 +1698,24 @@
     const action=button.dataset.action;
     if(action==='open-item') { setTimeout(injectItemInspectorActions,0); return; }
     if(action==='toggle-compare')return;
+    if(action==='apply-loadout'&&state().source!=='bungie')return;
     // Allow the original local-workspace controls to work when the item is not connected live.
-    if(['toggle-lock','toggle-equip','move-item','save-item-details'].includes(action) && !syncConnectedItemAction(button.dataset.id))return;
+    if(['toggle-lock','toggle-equip','move-item','save-item-details'].includes(action) && !syncConnectedItemAction(button.dataset.id)){
+      if(getItem(button.dataset.id)?.isLiveItem){event.preventDefault();event.stopImmediatePropagation();needConnection();}
+      return;
+    }
+    if(['toggle-lock','toggle-equip','move-item','save-item-details'].includes(action)&&live.busy){event.preventDefault();event.stopImmediatePropagation();LL.toast('Wait for the current operation to finish.');return;}
     const handler=handlers[action];
     if(!handler)return;
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+    const singleMutation=['toggle-lock','toggle-equip','move-item','save-item-details'].includes(action);
+    if(singleMutation){live.busy=true;updateHeader();}
     try { await handler(button); }
     catch(err) {
       live.error=err&&err.message||String(err);
       updateHeader();
       LL.toast(live.error,'error');
-    }
+    } finally {if(singleMutation){await refreshProfileOnly().catch(()=>{});live.busy=false;updateHeader();LL.renderPage();}}
   },true);
   document.addEventListener('change',event=>{
     const target=event.target;

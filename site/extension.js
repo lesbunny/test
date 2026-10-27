@@ -742,10 +742,13 @@
   function renderAudit() {
     const char=getSelectedCharacter();
     const gear=char?state().items.filter(i=>String(i.characterId||'')===String(char.characterId)&&i.equipped&&!i.isPostmaster):[];
+    // Bungie may return the Seasonal Artifact in character inventory rather than characterEquipment.
+    const artifacts=char?state().items.filter(i=>String(i.characterId||'')===String(char.characterId)&&!i.isPostmaster&&(/artifact/i.test(bucketFor(i))||/artifact/i.test(i.itemCategory||''))):[];
+    const auditItems=gear.concat(artifacts.filter(a=>!gear.some(g=>String(g.id)===String(a.id))));
     const subclass=gear.find(i=>/subclass/i.test(bucketFor(i))||/subclass/i.test(i.itemCategory||''))||null;
-    const element=subclass?damageName(subclass.damageType):'Unknown';
-    const gearText=gear.map(i=>[i.name,i.definitionDescription,(i.perks||[]).join(' ')].join(' ')).join(' ').toLowerCase();
-    const allPerks=unique(gear.flatMap(i=>i.perks||[]));
+    const element=subclass?inferSubclassElement(subclass):'Unknown';
+    const gearText=auditItems.map(i=>[i.name,i.definitionDescription,(i.perks||[]).join(' ')].join(' ')).join(' ').toLowerCase();
+    const allPerks=unique(auditItems.flatMap(i=>i.perks||[]));
     const strand=/strand|suspend|tangle|threadling|woven mail|sever|unravel/.test(gearText);
     const grenade=/grenade|discipline|demolitionist|explosive/.test(gearText);
     const melee=/melee|strength|pugilist|combination blow/.test(gearText);
@@ -764,12 +767,21 @@
     return renderHeading('BUILD COHERENCE CHECK','Equipped setup audit','A transparent local heuristic over your equipped gear, item descriptions, active socket names, and subclass element. It is not an LLM and it cannot see every combat interaction.',
       btn('refresh-bungie','↻ Refresh',!isConnected(),'button-quiet button-small'))+
       connectionNotice()+
-      '<div class="ll-audit-banner"><div class="ll-audit-emblem">⌕</div><div><div class="eyebrow">SELECTED GUARDIAN</div><h2>'+h(char?char.name:'No Guardian')+' · '+h(element)+'</h2><p>'+gear.length+' equipped items · '+exotics.length+' Exotics · '+allPerks.length+' active socket names captured</p></div></div>'+
+      '<div class="ll-audit-banner"><div class="ll-audit-emblem">⌕</div><div><div class="eyebrow">SELECTED GUARDIAN</div><h2>'+h(char?char.name:'No Guardian')+' · '+h(element)+'</h2><p>'+gear.length+' equipped items · '+artifacts.length+' Artifact record(s) · '+exotics.length+' Exotics · '+allPerks.length+' active socket names captured</p></div></div>'+
       '<div class="ll-audit-grid">'+cards.map(c=>'<article class="panel ll-audit-card '+h(c.tone)+'"><span class="ll-audit-state">'+(c.tone==='good'?'✓':c.tone==='warn'?'!':'i')+'</span><h3>'+h(c.title)+'</h3><p>'+h(c.body)+'</p></article>').join('')+'</div>'+
-      '<section class="panel"><div class="panel-head"><div><h2>Equipped items & active socket names</h2><p>These are the concrete sources used by the audit.</p></div></div>'+
+      '<section class="panel"><div class="panel-head"><div><h2>Equipped gear & active socket names</h2><p>Equipped gear and its current socket plugs are the sources used by the audit.</p></div></div>'+
       (gear.length?'<div class="ll-equipped-audit-list">'+gear.map(i=>'<div class="ll-equipped-audit-row"><div class="ll-mini-item-icon">'+(i.icon?'<img src="'+h(i.icon)+'" alt="" loading="lazy">':'✦')+'</div><div class="ll-equipped-audit-copy"><b>'+h(i.name)+'</b><small>'+h(bucketFor(i))+' · '+(i.power||'—')+' power</small><div class="ll-chip-list">'+(i.perks||[]).slice(0,8).map(p=>'<span class="tag">'+h(p)+'</span>').join('')+'</div></div><button class="button button-quiet button-small" data-action="open-item" data-id="'+h(i.id)+'">Inspect</button></div>').join(''):'<div class="empty-state">No equipped items in the selected profile. Refresh inventory.</div>')+
+      '</section><section class="panel"><div class="panel-head"><div><h2>Seasonal Artifact</h2><p>Selected Artifact and its active socket plugs, when returned by Bungie.</p></div></div>'+
+      (artifacts.length?'<div class="ll-equipped-audit-list">'+artifacts.map(i=>'<div class="ll-equipped-audit-row"><div class="ll-mini-item-icon">'+(i.icon?'<img src="'+h(i.icon)+'" alt="" loading="lazy">':'✦')+'</div><div class="ll-equipped-audit-copy"><b>'+h(i.name)+'</b><small>'+h(bucketFor(i))+' · '+(i.power||'—')+' power</small><div class="ll-chip-list">'+(i.perks||[]).map(p=>'<span class="tag">'+h(p)+'</span>').join('')+'</div></div><button class="button button-quiet button-small" data-action="open-item" data-id="'+h(i.id)+'">Inspect</button></div>').join(''):'<div class="empty-state">No Artifact record was returned. This may mean the current Bungie component response does not expose it as an inventory item.</div>')+
       '</section><section class="panel"><div class="panel-head"><div><h2>Detected socket names</h2><p>Names from the Bungie manifest for your active socket plugs; actual combat synergy still needs a human review.</p></div></div><div class="ll-chip-list">'+(perkList.map(p=>'<span class="tag">'+h(p)+'</span>').join('')||'<span class="ll-muted">No active socket names available.</span>')+'</div></section>'+
       '<div class="ll-bottom-disclaimer">This is intentionally labelled an audit, not “AI advice.” Once the inventory model is stable, it can be extended with verified build rules, set-bonus data and an optional user-provided AI provider.</div>';
+  }
+  function inferSubclassElement(item) {
+    const direct=damageName(item&&item.damageType);
+    if(direct!=='Unknown'&&direct!=='Kinetic')return direct;
+    const text=[item&&item.name,item&&item.definitionDescription,(item&&item.perks||[]).join(' ')].join(' ').toLowerCase();
+    for(const [pattern,name] of [[/strand|threadrunner/,'Strand'],[/stasis|revenant/,'Stasis'],[/solar|gunslinger/,'Solar'],[/void|nightstalker/,'Void'],[/arc|arcstrider/,'Arc']])if(pattern.test(text))return name;
+    return direct;
   }
   function damageName(id) { return ({1:'Kinetic',2:'Arc',3:'Solar',4:'Void',6:'Stasis',7:'Strand'})[Number(id)]||'Unknown'; }
 

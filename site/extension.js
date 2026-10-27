@@ -703,7 +703,7 @@
           btn('bulk-move-vault','Move '+fmt(Math.min(move.total,move.free))+' items to the Vault',!isConnected()||move.total===0||move.free===0,'ll-action-button')+'</section>'+
         '<section class="panel ll-action-card"><div class="ll-action-icon">🗑️</div><div class="eyebrow">SHARD SESSION PREP</div><h2>Prep a dismantling session</h2><p>Moves unequipped character weapons and armor into the Vault while leaving equipped gear, Postmaster items, and confirmed Shard List items alone. Then it stages as many safe, confirmed items as fit on your selected Guardian ('+h(active)+').</p><div class="ll-action-summary"><b>'+fmt(stageable.length)+' to stage</b><span>'+fmt(shardPrep.alreadyOnTarget.length)+' already staged · '+fmt(shardPrep.notFit)+' won’t fit</span></div>'+
           '<div class="ll-small-warning">Locked gear, Exotics, wishlist keepers, protected loadout items, high-stat armor, and any weapon with 500+ or unverifiable tracked kills are never staged. Dismantling stays in-game.</div>'+
-          (safeShardItems.length?btn('prep-shard-session','Prepare session · '+fmt(stageable.length)+' to stage',!isConnected(),'ll-action-button'):'<div class="ll-small-warning">No confirmed junk to stage. Confirm items on the Shard List first.</div>'+btn('go-shard','Review Shard List',false,'button-quiet ll-action-button'))+'</section>'+
+          ((stageable.length||shardPrep.alreadyOnTarget.length)?btn('prep-shard-session',stageable.length?'Prepare session · '+fmt(stageable.length)+' to stage':'Clear other gear · '+fmt(shardPrep.alreadyOnTarget.length)+' already staged',!isConnected(),'ll-action-button'):safeShardItems.length?'<div class="ll-small-warning">Confirmed items are on the Shard List, but none currently fit the selected Guardian’s freed gear slots. Switch Guardian or make bucket space before staging.</div>'+btn('go-shard','Review Shard List',false,'button-quiet ll-action-button'):'<div class="ll-small-warning">No confirmed junk to stage. Confirm items on the Shard List first.</div>'+btn('go-shard','Review Shard List',false,'button-quiet ll-action-button'))+'</section>'+
         '<section class="panel ll-action-card"><div class="ll-action-icon">⚡</div><div class="eyebrow">POWER MANAGEMENT</div><h2>Stage infusion fuel</h2><p>Chooses up to two highest-power, safely burnable Vault pieces per weapon/armor slot—but only if each piece beats the selected Guardian’s equipped power. Low-power items are never staged.</p><div class="ll-action-summary"><b>'+fmt(f.total)+' fuel pieces</b><span>'+fmt(f.rows.filter(r=>r.count).length)+' slots with upgrades</span></div>'+
           '<div class="ll-small-warning">Exotics, locks, wishlist rolls, loadout-protected gear, high-stat armor and tracked-kill weapons are excluded. Check each row before moving the fuel.</div>'+
           btn('stage-infusion-fuel','Stage '+fmt(f.total)+' fuel pieces',!isConnected()||f.total===0,'ll-action-button')+'</section>'+
@@ -828,7 +828,13 @@
       const current=char?equippedItem(char.characterId,bucket):null;
       const candidates=state().items.filter(i=>isGear(i)&&bucketFor(i)===bucket&&!i.isPostmaster&&i.isLiveItem&&normalizeTransferable(i)&&classCanUse(i,char)&&(
         i.owner==='Vault'||(char&&String(i.characterId)===String(char.characterId)&&!i.isPostmaster)||(!i.equipped&&i.owner!=='Vault')
-      )).sort((a,b)=>Number(b.power)-Number(a.power));
+      )).sort((a,b)=>{
+        const powerDifference=Number(b.power)-Number(a.power);
+        if(powerDifference)return powerDifference;
+        const aIsWorn=!!(char&&a.equipped&&String(a.characterId)===String(char.characterId));
+        const bIsWorn=!!(char&&b.equipped&&String(b.characterId)===String(char.characterId));
+        return Number(bIsWorn)-Number(aIsWorn);
+      });
       const item=candidates[0]||null;
       return {bucket,current:Number(current&&current.power||0),item,improvement:item?Number(item.power||0)-Number(current&&current.power||0):null};
     });
@@ -1468,7 +1474,16 @@
       return {item,roll,safe,reason,kind};
     });
     const dupes=new Map();
-    items.forEach(i=>{const key=String(i.itemHash)+'|'+(i.perkHashes||[]).slice().sort().join(',');if(!dupes.has(key))dupes.set(key,[]);dupes.get(key).push(i);});
+    items.forEach(i=>{
+      // Same armor model + sockets is not necessarily a duplicate: random armor stats matter.
+      // Only compare armor copies when Bungie returned the complete six-stat profile.
+      const statEntries=Object.entries(i.stats||{}).sort(([a],[b])=>a.localeCompare(b));
+      if(isArmor(i)&&statEntries.length<6)return;
+      const statSignature=isArmor(i)?statEntries.map(([name,value])=>name+':'+Number(value||0)).join(','):'';
+      const key=String(i.itemHash)+'|'+(i.perkHashes||[]).slice().sort().join(',')+'|'+statSignature;
+      if(!dupes.has(key))dupes.set(key,[]);
+      dupes.get(key).push(i);
+    });
     const duplicateIds=new Set([...dupes.values()].filter(a=>a.length>1).flatMap(a=>a.map(i=>i.id)));
     const mode=live.cleanerFilter||'all';
     const filtered=findings.filter(f=>{

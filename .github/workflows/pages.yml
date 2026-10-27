@@ -29,10 +29,14 @@ jobs:
           node --input-type=commonjs -e 'const fs=require("node:fs"),vm=require("node:vm"),html=fs.readFileSync("site/index.html","utf8");const scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(s=>s.trim());scripts.forEach((s,i)=>new vm.Script(s,{filename:"inline-app-"+i+".js"}));console.log("Validated "+scripts.length+" inline script(s).");'
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+      - name: Prepare Pages artifact
+        run: |
+          mkdir -p _site
+          cp -a site/. _site/
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: _site
       - name: Deploy site
         id: deployment
         uses: actions/deploy-pages@v4

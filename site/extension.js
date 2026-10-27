@@ -1679,6 +1679,12 @@
     }
   },true);
 
+  // Farming Mode must never resume automatically after a full page reload or OAuth redirect.
+  // The user has to explicitly enable live inventory moves again in the current tab.
+  if(state().farm.enabled) {
+    state().farm.enabled=false;
+    LL.persist();
+  }
   window.LittleLightExtension={handlesPage,renderPage,afterRender};
   updateHeader();
   LL.renderPage();

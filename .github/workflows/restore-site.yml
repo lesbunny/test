@@ -1,0 +1,24 @@
+name: Restore site from good commit
+on:
+  workflow_dispatch:
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore site/ from last known good commit
+        run: |
+          set -e
+          GOOD=6ae99804fa08d75f1e9fedb1e9495aed13c7e620
+          git checkout "$GOOD" -- site/ README.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A site/ README.md
+          git status
+          git diff --cached --stat
+          git commit -m "Restore site files from good commit ${GOOD}" || echo "no changes"
+          git push origin HEAD:${{ github.ref_name }}

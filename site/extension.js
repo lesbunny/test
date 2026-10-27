@@ -69,7 +69,7 @@
     try { sessionStorage.setItem(TOKEN_KEY,JSON.stringify(t)); }
     catch (_) { throw new Error('The browser could not keep the Bungie session. Allow session storage and try again.'); }
   }
-  function dropToken() { try { sessionStorage.removeItem(TOKEN_KEY); } catch (_) {} }
+  function dropToken() { try { sessionStorage.removeItem('authorization');sessionStorage.removeItem(TOKEN_KEY); } catch (_) {} }
   function redirectUri() {
     const u = new URL('./',location.href);
     u.search=''; u.hash='';
@@ -282,7 +282,7 @@
       });
       const data=await response.json().catch(()=>({}));
       if(!response.ok||!data.access_token)throw new Error(data.error_description||data.Message||('Bungie token exchange failed (HTTP '+response.status+'). Check that the Bungie app is configured as Public and its redirect URL matches exactly.'));
-      saveToken({access_token:data.access_token,refresh_token:'',expires_at:Date.now()+Number(data.expires_in||3600)*1000,refresh_expires_at:0});
+      saveToken({membership_id:data.membership_id,access_token:data.access_token,refresh_token:'',expires_at:Date.now()+Number(data.expires_in||3600)*1000,refresh_expires_at:0});
       cleanOAuthUrl();
       sessionStorage.removeItem('little-light-oauth-state');
       await findMemberships();
@@ -371,6 +371,8 @@
   async function findMemberships() {
     setStatus('Finding linked Destiny accounts…');
     const result=await bungieRequest('/User/GetMembershipsForCurrentUser/');
+    const session=tokenState();
+    if(session&&result?.bungieNetUser?.membershipId)saveToken({...session,membership_id:result.bungieNetUser.membershipId});
     const memberships=(result&&result.destinyMemberships||[]).filter(m=>m&&m.membershipId&&m.membershipType!==undefined);
     if(!memberships.length)throw new Error('Bungie did not return a Destiny membership. Make sure your app has ReadBasicUserProfile scope and your Bungie account has a Destiny profile.');
     live.memberships=memberships;
@@ -438,11 +440,13 @@
       const items=buildLiveItems(live.profile);
       const old=state().items||[];
       const oldById=new Map(old.map(i=>[String(i.id),i]));
+      const observedAt=Date.now();
+      if(state().source!=='bungie'){state().preferences||={};state().preferences.reviewedDropsAt=observedAt;}
       state().items=items.map((item,index)=>{
         const previous=oldById.get(String(item.id))||{};
         const merged=Object.assign({},previous,item,{
           id:String(item.id),tags:Array.isArray(previous.tags)?previous.tags:[],
-          notes:previous.notes||'',localProtection:previous.localProtection||false
+          firstSeen:previous.firstSeen||observedAt,notes:previous.notes||'',localProtection:previous.localProtection||false
         });
         return LL.normalizeWorkspaceItem(merged,index);
       });
@@ -1040,7 +1044,7 @@
     live.savedLoadoutIds=extractSavedLoadoutIds(live.profile);
     const items=buildLiveItems(live.profile);
     const old=state().items||[],oldById=new Map(old.map(i=>[String(i.id),i]));
-    state().items=items.map((item,index)=>{const previous=oldById.get(String(item.id))||{};return LL.normalizeWorkspaceItem(Object.assign({},previous,item,{id:String(item.id),tags:Array.isArray(previous.tags)?previous.tags:[],notes:previous.notes||''}),index);});
+    state().items=items.map((item,index)=>{const previous=oldById.get(String(item.id))||{};return LL.normalizeWorkspaceItem(Object.assign({},previous,item,{id:String(item.id),tags:Array.isArray(previous.tags)?previous.tags:[],firstSeen:previous.firstSeen||Date.now(),notes:previous.notes||''}),index);});
     state().demo=false;state().source='bungie';
     live.connected=true;live.lastSync=new Date().toISOString();
     state().shardList=(state().shardList||[]).filter(id=>state().items.some(i=>String(i.id)===String(id)));
@@ -1736,9 +1740,10 @@
     state().farm.enabled=false;
     LL.persist();
   }
-  window.LittleLightExtension={handlesPage,renderPage,afterRender};
+  window.LittleLightExtension={handlesPage,renderPage,afterRender,assessRoll};
   updateHeader();
   LL.renderPage();
+  if(new URL(location.href).searchParams.has('connect'))document.getElementById('connectBungieButton')?.click();
   const initialOAuthUrl=new URL(location.href);
   const hasOAuthCallback=initialOAuthUrl.searchParams.has('code')||initialOAuthUrl.searchParams.has('error');
   handleOAuthCallback().catch(err=>{

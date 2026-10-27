@@ -23,6 +23,13 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Build pinned DIM engine
+        run: |
+          npm install --global corepack
+          bash scripts/build-dim.sh
       - name: Validate browser app
         run: |
           node --check site/extension.js

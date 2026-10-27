@@ -113,16 +113,16 @@ jobs:
           # Material-ish CSS polish (append once)
           polish = '''
 
-/* Visible polish 2026-10-27 */
-.ll-version-chip{display:inline-block;margin-top:6px;padding:3px 8px;border-radius:999px;font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#eaddff;background:#4f378b;border:1px solid #d0bcff55}
-.gear-card{transition:transform .15s ease,box-shadow .15s ease}
-.gear-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px #0006}
-.button{border-radius:999px!important}
-.filter-chip{border-radius:999px!important}
-.panel{border-radius:16px!important}
-.nav-item.active{background:#4a4458!important;color:#e8def8!important}
-.search-wrap{border-radius:999px!important}
-'''
+          /* Visible polish 2026-10-27 */
+          .ll-version-chip{display:inline-block;margin-top:6px;padding:3px 8px;border-radius:999px;font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#eaddff;background:#4f378b;border:1px solid #d0bcff55}
+          .gear-card{transition:transform .15s ease,box-shadow .15s ease}
+          .gear-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px #0006}
+          .button{border-radius:999px!important}
+          .filter-chip{border-radius:999px!important}
+          .panel{border-radius:16px!important}
+          .nav-item.active{background:#4a4458!important;color:#e8def8!important}
+          .search-wrap{border-radius:999px!important}
+          '''
           if 'Visible polish 2026-10-27' not in css:
               css += polish
               print('css polish appended')

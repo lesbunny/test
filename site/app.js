@@ -57,7 +57,7 @@
     add('Solar Hood','Helmet','Warlock',2007,'Legendary',{equipped:true,stats:{Mobility:8,Resilience:10,Recovery:18,Discipline:14,Intellect:8,Strength:8}});
     add('Commemoration','Power Weapons','Warlock',2004,'Legendary',{equipped:true,perks:['Reconstruction','Killing Tally']});
     add('Funnelweb','Energy Weapons','Warlock',2003,'Legendary',{equipped:true,perks:['Subsistence','Frenzy']});
-    return a;
+    return a.map(i=>({...i,...(window.LittleLightSampleArt?.[i.name]||{})}));
   }
   function inferType(bucket='Other') {
     if (/weapon/i.test(bucket)) return 'Weapon';
@@ -70,8 +70,11 @@
     return {version:2,items:demoItems(),loadouts:[],demo:true,bannerDismissed:false,farm:{enabled:false,owner:'Hunter',spaces:1,includeWeapons:true,includeArmor:true,includeUtility:true},compareIds:[],log:[],preferences:{}};
   }
   let state = loadState();
-  let page = 'dashboard';
-  document.documentElement.dataset.theme=state.preferences?.theme||'light';
+  if(state.demo)state.items=state.items.map(i=>({...i,...(window.LittleLightSampleArt?.[i.name]||{})}));
+  let page = 'inventory';
+  state.preferences||={};
+  if(!state.preferences.dimRefresh){state.preferences.theme='dark';state.preferences.inventoryGrouping='board';state.preferences.dimRefresh=1;persist();}
+  document.documentElement.dataset.theme=state.preferences.theme||'dark';
   let inventoryFilter = 'All';
   let inventoryOwner = 'All locations';
   let inventoryQuery = '';
@@ -180,7 +183,7 @@
     const banner=$('#sampleBanner');banner.classList.toggle('hidden',!state.demo||state.bannerDismissed);
   }
   function go(to) {
-    page=to;activeDrawer=null;closeDetail();$('#pageCrumb').textContent=({bulk:'Bulk actions',power:'Maximum power',postmaster:'Postmaster',shard:'Shard List',audit:'Setup audit',builder:'Armor builder',dashboard:'Overview',inventory:'Inventory',farming:'Farming Mode',loadouts:'Loadouts',compare:'Compare',cleaner:'Vault review',data:'Import & export'})[to]||'Overview';
+    page=to;activeDrawer=null;closeDetail();$('#pageCrumb').textContent=({dim:'DIM inventory',organizer:'Organizer',optimizer:'Loadout optimizer',dimloadouts:'DIM loadouts',vendors:'Vendors',collections:'Collections & catalysts',progress:'Progress & triumphs',feed:'Item feed',settings:'DIM settings',appraisal:'Gear appraisal',drops:'New drops',watch:'Build watcher',goals:'Loot goals',bulk:'Bulk actions',power:'Maximum power',postmaster:'Postmaster',shard:'Shard List',audit:'Setup audit',builder:'Armor builder',dashboard:'Overview',inventory:'Inventory',farming:'Farming Mode',loadouts:'Loadouts',compare:'Compare',cleaner:'Vault review',data:'Import & export'})[to]||'Overview';
     $$('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.page===to));$('#sidebar').classList.remove('open');renderPage();window.scrollTo({top:0,behavior:'instant'});$('#pageContent').focus({preventScroll:true});
   }
   function renderPage() {
@@ -225,14 +228,19 @@
     const sections=new Map();
     items.forEach(i=>{const key=`${i.owner}|||${i.bucket}`;if(!sections.has(key))sections.set(key,[]);sections.get(key).push(i);});
     const grouped=[...sections.entries()].sort(([a],[b])=>{const [ao,ab]=a.split('|||'),[bo,bb]=b.split('|||');return owners.indexOf(ao)-owners.indexOf(bo)||window.InventoryCore.slotCompare(ab,bb);});
-    const content=inventoryGrouping==='flat'?`<div class="bucket-grid view-${inventoryView}">${items.map(i=>gearCard(i,true)).join('')}</div>`:grouped.map(([key,values])=>{const [owner,bucket]=key.split('|||');return `<section class="inventory-section"><div class="inventory-section-head"><h2>${escapeHtml(owner)} <span class="muted">/</span> ${escapeHtml(bucket)}</h2><small>${values.length} item${values.length===1?'':'s'}</small></div><div class="bucket-grid view-${inventoryView}">${values.map(i=>gearCard(i,true)).join('')}</div></section>`;}).join('');
+    const content=inventoryGrouping==='board'?renderInventoryBoard(items):inventoryGrouping==='flat'?`<div class="bucket-grid view-${inventoryView}">${items.map(i=>gearCard(i,true)).join('')}</div>`:grouped.map(([key,values])=>{const [owner,bucket]=key.split('|||');return `<section class="inventory-section"><div class="inventory-section-head"><h2>${escapeHtml(owner)} <span class="muted">/</span> ${escapeHtml(bucket)}</h2><small>${values.length} item${values.length===1?'':'s'}</small></div><div class="bucket-grid view-${inventoryView}">${values.map(i=>gearCard(i,true)).join('')}</div></section>`;}).join('');
     return `${pageHeading('GEAR & STORAGE','Your arsenal','Your whole arsenal, in order. Select gear to organize it, or use the compare checkbox to inspect rolls side by side.',`<button class="button button-quiet" data-action="go-data">Import / export</button>`)}
       <div class="inventory-toolbar"><div class="search-wrap"><span>⌕</span><input class="control" id="inventorySearch" value="${escapeHtml(inventoryQuery)}" placeholder="Search gear, perks, tags… try is:locked or bucket:helmet" aria-label="Search inventory"></div><select class="control" id="ownerSelect" aria-label="Filter by location">${ownerOptions}</select><select class="control" id="sortSelect" aria-label="Sort inventory"><option value="power" ${sortBy==='power'?'selected':''}>Power: high to low</option><option value="name" ${sortBy==='name'?'selected':''}>Name: A–Z</option><option value="stats" ${sortBy==='stats'?'selected':''}>Armor stats</option><option value="rarity" ${sortBy==='rarity'?'selected':''}>Exotics first</option><option value="bucket" ${sortBy==='bucket'?'selected':''}>Item slot</option></select></div>
       <div class="filter-chip-row">${filters.map(f=>`<button class="filter-chip ${inventoryFilter===f?'active':''}" data-action="inventory-filter" data-value="${f}">${f==='All'?'All gear':f}${f==='Protected'?` (${state.items.filter(isProtected).length})`:''}</button>`).join('')}<span class="muted small" style="align-self:center;margin-left:auto">${items.length} results</span></div>
-      <div class="inventory-options"><select class="control" id="viewSelect" aria-label="Inventory display">${['cards','compact','list'].map(v=>`<option value="${v}" ${v===inventoryView?'selected':''}>${v[0].toUpperCase()+v.slice(1)} view</option>`).join('')}</select><select class="control" id="groupSelect" aria-label="Inventory grouping"><option value="location" ${inventoryGrouping==='location'?'selected':''}>Group by location & slot</option><option value="flat" ${inventoryGrouping==='flat'?'selected':''}>All results, sorted together</option></select><button class="button button-quiet" data-action="save-search">Save search</button><button class="button button-quiet" data-action="reset-filters">Reset filters</button><button class="button button-quiet" data-action="export-results">Export results</button></div>
+      <details class="inventory-advanced" ${selectedIds.size||state.compareIds.length?'open':''}><summary>Organize & display options · ${selectedIds.size} selected · ${state.compareIds.length}/3 comparing</summary><div class="inventory-options"><select class="control" id="viewSelect" aria-label="Inventory display">${['cards','compact','list'].map(v=>`<option value="${v}" ${v===inventoryView?'selected':''}>${v[0].toUpperCase()+v.slice(1)} view</option>`).join('')}</select><select class="control" id="groupSelect" aria-label="Inventory grouping"><option value="board" ${inventoryGrouping==='board'?'selected':''}>Character & vault board</option><option value="location" ${inventoryGrouping==='location'?'selected':''}>Group by location & slot</option><option value="flat" ${inventoryGrouping==='flat'?'selected':''}>All results, sorted together</option></select><button class="button button-quiet" data-action="save-search">Save search</button><button class="button button-quiet" data-action="reset-filters">Reset filters</button><button class="button button-quiet" data-action="export-results">Export results</button></div>
       <details class="search-help"><summary>Search tips & saved searches</summary><p>Combine filters: <code>is:weapon power:&gt;=2000 -is:locked</code> · <code>perk:"bait and switch"</code> · <code>is:duplicate</code> · <code>stat.resilience:&gt;=20</code> · <code>element:solar OR element:void</code></p><div class="filter-chip-row">${(state.preferences?.savedSearches||[]).map((q,n)=>`<button class="filter-chip" data-action="use-search" data-value="${n}">${escapeHtml(q.name)}</button><button class="icon-button" data-action="delete-search" data-value="${n}" aria-label="Delete saved search ${escapeHtml(q.name)}">×</button>`).join('')||'<span class="muted">Save your favorite filters for next time.</span>'}</div></details>
       <div class="selection-bar"><span>${selectedIds.size} selected · ${state.compareIds.length}/3 comparing</span><button class="button button-quiet" data-action="select-results">Select results</button><button class="button button-quiet" data-action="clear-selected">Clear</button><select class="control" id="bulkTag" aria-label="Tag selected items"><option value="keep">Keep</option><option value="favorite">Favorite</option><option value="review">Review</option><option value="junk">Junk (tag only)</option></select><button class="button" data-action="tag-selected" ${selectedIds.size?'':'disabled'}>Apply tag</button>${tagUndo?'<button class="button button-quiet" data-action="undo-tags">Undo tags</button>':''}${state.compareIds.length?'<button class="button button-quiet" data-action="go-compare">Compare →</button>':''}</div>
-      ${content||'<div class="empty-state"><strong>No gear matches that view.</strong>Try removing a filter, or import a DIM inventory CSV.</div>'}`;
+      </details>${content||'<div class="empty-state"><strong>No gear matches that view.</strong>Try removing a filter, or import a DIM inventory CSV.</div>'}`;
+  }
+  function renderInventoryBoard(items) {
+    const owners=[...new Set([...ownerNames().filter(o=>o!=='Vault'),'Vault'])];
+    const slots=[...new Set(items.map(i=>i.bucket))].sort(window.InventoryCore.slotCompare);
+    return `<div class="arsenal-scroll"><div class="arsenal-board" style="--stores:${owners.length}">${owners.map(o=>`<header class="store-banner"><span>${o==='Vault'?'◈':'✧'}</span><div><h2>${escapeHtml(o)}</h2><small>${items.filter(i=>i.owner===o).length} items · ${items.filter(i=>i.owner===o&&i.equipped).length} equipped</small></div></header>`).join('')}${slots.map(slot=>owners.map(owner=>{const gear=items.filter(i=>i.owner===owner&&i.bucket===slot);return `<section class="store-slot"><h3>${escapeHtml(slot)} <span>${gear.length}</span></h3><div class="store-items">${gear.map(i=>gearCard(i,true)).join('')||'<span class="empty-slot">—</span>'}</div></section>`;}).join('')).join('')}</div></div>`;
   }
   function bindInventoryControls() {
     const search=$('#inventorySearch');if(search)search.addEventListener('input',e=>{inventoryQuery=e.target.value;const pos=e.target.selectionStart;renderPage();const el=$('#inventorySearch');el.focus();el.setSelectionRange(pos,pos);});
@@ -482,6 +490,10 @@
   // Render once, and wire controls that only exist on the active page.
   const originalRenderPage=renderPage;
   renderPage=function patchedRenderPage(){
+    document.body.dataset.page=page;
+    if(window.LittleLightTools?.handlesPage(page)){
+      $('#pageContent').innerHTML=window.LittleLightTools.renderPage(page);syncSidebar();return;
+    }
     if(window.LittleLightExtension && window.LittleLightExtension.handlesPage(page)){
       $('#pageContent').innerHTML=window.LittleLightExtension.renderPage(page);
       syncSidebar();

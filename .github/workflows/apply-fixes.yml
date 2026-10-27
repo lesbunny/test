@@ -1,0 +1,65 @@
+name: Apply Unknown-item and sort fixes
+on:
+  workflow_dispatch:
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply patches
+        run: |
+          set -e
+          python3 << 'PY'
+          import pathlib, re
+          ext = pathlib.Path('site/extension.js').read_text(encoding='utf-8')
+          html = pathlib.Path('site/index.html').read_text(encoding='utf-8')
+          for old, new in [
+            ('const itemDefinitionPath=worldPaths.DestinyInventoryItemDefinition||componentPaths.DestinyInventoryItemDefinition;',
+             'const itemDefinitionPath=componentPaths.DestinyInventoryItemDefinition||worldPaths.DestinyInventoryItemDefinition;'),
+            ('const statPath=worldPaths.DestinyStatDefinition||componentPaths.DestinyStatDefinition;',
+             'const statPath=componentPaths.DestinyStatDefinition||worldPaths.DestinyStatDefinition;'),
+            ('const bucketPath=worldPaths.DestinyInventoryBucketDefinition||componentPaths.DestinyInventoryBucketDefinition;',
+             'const bucketPath=componentPaths.DestinyInventoryBucketDefinition||worldPaths.DestinyInventoryBucketDefinition;'),
+          ]:
+            if old in ext:
+              ext = ext.replace(old, new)
+              print('path order fixed')
+          needle = '    live.itemDefs=itemDefs;\n    live.statDefs=results[1]||{};\n    live.bucketDefs=results[2]||{};'
+          unwrap = '''    function unwrapDefs(data, tableName) {\n      if(!data||typeof data!==\'object\')return null;\n      const sample=Object.values(data).find(d=>d&&d.displayProperties&&d.displayProperties.name);\n      if(sample)return data;\n      if(tableName&&data[tableName]&&typeof data[tableName]===\'object\'){\n        const nested=data[tableName];\n        if(Object.values(nested).find(d=>d&&d.displayProperties&&d.displayProperties.name))return nested;\n      }\n      if(data.Response)return unwrapDefs(data.Response, tableName);\n      return null;\n    }\n    itemDefs=unwrapDefs(itemDefs,\'DestinyInventoryItemDefinition\')||itemDefs;\n    live.itemDefs=itemDefs;\n    live.statDefs=unwrapDefs(results[1],\'DestinyStatDefinition\')||results[1]||{};\n    live.bucketDefs=unwrapDefs(results[2],\'DestinyInventoryBucketDefinition\')||results[2]||{};'''
+          if needle in ext and 'function unwrapDefs' not in ext:
+            ext = ext.replace(needle, unwrap)
+            print('unwrapDefs injected')
+          old_df = 'function definitionFor(itemHash) { return live.itemDefs&&live.itemDefs[String(itemHash)]||{}; }'
+          new_df = 'function definitionFor(itemHash) { if(!live.itemDefs||itemHash==null)return {}; const key=String(itemHash); return live.itemDefs[key]||live.itemDefs[Number(itemHash)]||{}; }'
+          if old_df in ext:
+            ext = ext.replace(old_df, new_df)
+            print('definitionFor fixed')
+          old_name = "const name=def.displayProperties&&def.displayProperties.name||('Unknown item '+raw.itemHash);"
+          new_name = "const name=(def.displayProperties&&def.displayProperties.name&&String(def.displayProperties.name).trim())||def.displayName||def.itemTypeDisplayName||('Item #'+raw.itemHash);"
+          if old_name in ext:
+            ext = ext.replace(old_name, new_name)
+            print('name fallback fixed')
+          pathlib.Path('site/extension.js').write_text(ext, encoding='utf-8')
+          if 'function bucketRank' not in html:
+            m = re.search(r'function matchesQuery\\(item, query\\) \\{.*?\\n  \\}\\n', html, re.S)
+            if m:
+              helpers = "  function bucketRank(bucket) {\\n    const order=['Kinetic Weapons','Energy Weapons','Power Weapons','Helmet','Gauntlets','Chest Armor','Leg Armor','Class Item','Subclass','Ghost','Sparrow','Ship','Emblem','Artifact','Postmaster','Other'];\\n    const i=order.indexOf(bucket); return i>=0?i:50;\\n  }\\n  function ownerRank(owner) {\\n    if(owner==='Hunter'||/^Hunter/.test(owner||''))return 0;\\n    if(owner==='Titan'||/^Titan/.test(owner||''))return 1;\\n    if(owner==='Warlock'||/^Warlock/.test(owner||''))return 2;\\n    if(owner==='Vault')return 9; return 5;\\n  }\\n"
+              html = html[:m.end()] + helpers + html[m.end():]
+              print('helpers inserted')
+            old_sort = "const sort={power:(a,b)=>numeric(b.power)-numeric(a.power),name:(a,b)=>a.name.localeCompare(b.name),stats:(a,b)=>totalStats(b)-totalStats(a),bucket:(a,b)=>a.bucket.localeCompare(b.bucket)}[sortBy]||((a,b)=>numeric(b.power)-numeric(a.power));\\n    return items.sort(sort);"
+            new_sort = "const primary={power:(a,b)=>numeric(b.power)-numeric(a.power),name:(a,b)=>String(a.name||'').localeCompare(String(b.name||'')),stats:(a,b)=>totalStats(b)-totalStats(a),bucket:(a,b)=>bucketRank(a.bucket||a.gearBucket)-bucketRank(b.bucket||b.gearBucket)||String(a.name||'').localeCompare(String(b.name||''))}[sortBy]||((a,b)=>numeric(b.power)-numeric(a.power));\\n    return items.sort((a,b)=>{const o=ownerRank(a.owner)-ownerRank(b.owner);if(o)return o;const br=bucketRank(a.bucket||a.gearBucket)-bucketRank(b.bucket||b.gearBucket);if(sortBy==='bucket'&&br)return br;const p=primary(a,b);if(p)return p;if(br)return br;return String(a.name||'').localeCompare(String(b.name||''));});"
+            if old_sort in html:
+              html = html.replace(old_sort, new_sort)
+              print('sort fixed')
+          pathlib.Path('site/index.html').write_text(html, encoding='utf-8')
+          print('DONE', len(ext), len(html))
+          PY
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site/extension.js site/index.html
+          git commit -m "Fix Unknown items (component manifest paths) + inventory sort" || echo no changes
+          git push

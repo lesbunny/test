@@ -481,7 +481,7 @@
   function deleteLoadout(id) {const l=state.loadouts.find(x=>x.id===id);if(!l)return;if(!confirm(`Delete the local loadout “${l.name}”? Gear items will remain.`))return;state.loadouts=state.loadouts.filter(x=>x.id!==id);persist();renderPage();toast('Loadout deleted. Gear was not changed.');}
   function resetDemo() {if(!confirm('Replace this browser workspace with the original sample gear? Imported items, notes, tags, loadouts and local moves will be discarded. Export a backup first if needed.'))return;state=getDefaultState();persist();page='dashboard';renderPage();toast('Sample workspace restored.','success');}
   function openHelp() {
-    $('#modal').innerHTML=`<h2 id="modalTitle">About Little Light</h2><p>A local-first Destiny companion prototype built as a GitHub Pages project.</p><div class="form-tip"><b>What is implemented</b><br>Inventory CSV/JSON import and export, local tagging/protection, a per-bucket Farming Mode move planner, local loadout snapshots, armor stat comparison, and conservative vault review.</div><div class="separator"></div><div class="form-tip"><b>What is not implemented</b><br>There is no Bungie OAuth session or live Bungie API adapter, so the site cannot sync a real vault, move/equip live items, edit sockets or subclass settings, retrieve the full manifest, or dismantle gear. Nothing in this prototype claims to do so.</div><div class="help-links"><a href="https://github.com/DestinyItemManager/DIM/wiki/Inventory" target="_blank" rel="noreferrer">DIM inventory guide ↗</a><a href="https://github.com/DestinyItemManager/DIM/wiki/Loadouts" target="_blank" rel="noreferrer">DIM loadouts ↗</a><a href="https://shardorkeep.com/features/loadout-builder" target="_blank" rel="noreferrer">Shard or Keep builder ↗</a></div><div class="modal-actions"><button class="button" data-action="close-modal">Got it</button></div>`;$('#modalScrim').hidden=false;
+    $('#modal').innerHTML=`<h2 id="modalTitle">About Little Light</h2><p>A local-first Destiny companion prototype built as a GitHub Pages project.</p><div class="form-tip"><b>What is implemented</b><br>Inventory CSV/JSON import and export, local tagging/protection, a per-bucket Farming Mode move planner, local loadout snapshots, armor stat comparison, and conservative vault review.</div><div class="separator"></div><div class="form-tip"><b>What is not implemented</b><br>Little Light cannot dismantle gear through Bungie's API, and its equipped-setup audit is a transparent heuristic rather than a full mod/subclass optimizer. Dismantling must be done in-game by you.</div><div class="help-links"><a href="https://github.com/DestinyItemManager/DIM/wiki/Inventory" target="_blank" rel="noreferrer">DIM inventory guide ↗</a><a href="https://github.com/DestinyItemManager/DIM/wiki/Loadouts" target="_blank" rel="noreferrer">DIM loadouts ↗</a><a href="https://shardorkeep.com/features/loadout-builder" target="_blank" rel="noreferrer">Shard or Keep builder ↗</a></div><div class="modal-actions"><button class="button" data-action="close-modal">Got it</button></div>`;$('#modalScrim').hidden=false;
   }
 
   document.addEventListener('click', e=>{
@@ -547,6 +547,6 @@
 })();
 
 </script>
-<script src="./extension.js?v=20261027-worker-oauth-2" defer></script>
+<script src="./extension.js?v=20261027-public-oauth-3" defer></script>
 </body>
 </html>

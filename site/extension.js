@@ -97,6 +97,20 @@
     openConnectModal();
     return false;
   }
+  function distinguishCharacterNames(rows) {
+    const totals=new Map(),seen=new Map();
+    rows.forEach(c=>{
+      const base=CLASS_NAMES[Number(c.classType)];
+      if(base)totals.set(base,(totals.get(base)||0)+1);
+    });
+    return rows.map(c=>{
+      const base=CLASS_NAMES[Number(c.classType)];
+      if(!base||totals.get(base)<=1)return c;
+      const index=(seen.get(base)||0)+1;
+      seen.set(base,index);
+      return Object.assign({},c,{name:base+' '+index});
+    });
+  }
   function getSelectedCharacter() {
     return live.characters.find(c=>String(c.characterId)===String(live.selectedCharacterId)) || live.characters[0] || null;
   }
@@ -368,11 +382,11 @@
       const path='/Destiny2/'+encodeURIComponent(m.membershipType)+'/Profile/'+encodeURIComponent(m.membershipId)+'/?components=100,102,103,200,201,202,205,206,300,301,302,304,305,307,400';
       live.profile=await bungieRequest(path);
       const charactersData=live.profile&&live.profile.characters&&live.profile.characters.data||{};
-      live.characters=Object.entries(charactersData).map(([id,c],i)=>({
+      live.characters=distinguishCharacterNames(Object.entries(charactersData).map(([id,c],i)=>({
         characterId:String(id),classType:Number(c.classType),name:CLASS_NAMES[Number(c.classType)]||('Guardian '+(i+1)),
         light:Number(c.light||0),raceHash:c.raceHash,genderHash:c.genderHash,emblemPath:c.emblemPath||'',
         dateLastPlayed:c.dateLastPlayed||''
-      })).sort((a,b)=>a.classType-b.classType);
+      })).sort((a,b)=>a.classType-b.classType));
       if(!live.characters.length)throw new Error('No Destiny 2 characters were returned for this account.');
       if(!live.characters.some(c=>String(c.characterId)===String(config.selectedCharacterId))) {
         live.selectedCharacterId=live.characters[0].characterId;
@@ -918,7 +932,7 @@
     const path='/Destiny2/'+encodeURIComponent(m.membershipType)+'/Profile/'+encodeURIComponent(m.membershipId)+'/?components=100,102,103,200,201,202,205,206,300,301,302,304,305,307,400';
     live.profile=await bungieRequest(path);
     const charactersData=live.profile&&live.profile.characters&&live.profile.characters.data||{};
-    live.characters=Object.entries(charactersData).map(([id,c],i)=>({characterId:String(id),classType:Number(c.classType),name:CLASS_NAMES[Number(c.classType)]||('Guardian '+(i+1)),light:Number(c.light||0),emblemPath:c.emblemPath||''})).sort((a,b)=>a.classType-b.classType);
+    live.characters=distinguishCharacterNames(Object.entries(charactersData).map(([id,c],i)=>({characterId:String(id),classType:Number(c.classType),name:CLASS_NAMES[Number(c.classType)]||('Guardian '+(i+1)),light:Number(c.light||0),emblemPath:c.emblemPath||''})).sort((a,b)=>a.classType-b.classType));
     live.savedLoadoutIds=extractSavedLoadoutIds(live.profile);
     const items=buildLiveItems(live.profile);
     const old=state().items||[],oldById=new Map(old.map(i=>[String(i.id),i]));

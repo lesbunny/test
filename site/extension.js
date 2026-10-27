@@ -352,10 +352,9 @@
     live.version=String(manifest.version||'');
     const worldPaths=manifest.jsonWorldContentPaths&&manifest.jsonWorldContentPaths.en||{};
     const componentPaths=manifest.jsonWorldComponentContentPaths&&manifest.jsonWorldComponentContentPaths.en||{};
-    // Bungie splits full world definitions and lightweight component definitions on some manifest versions.
-    // Merge both maps so choosing the component map cannot hide the full item-definition path.
-    const paths=Object.assign({},worldPaths,componentPaths);
-    const itemDefinitionPath=paths.DestinyInventoryItemDefinition||worldPaths.DestinyInventoryItemDefinition;
+    // Item definitions must come from the full world-content database. Component
+    // paths are a separate lightweight database and must never override these URLs.
+    const itemDefinitionPath=worldPaths.DestinyInventoryItemDefinition||componentPaths.DestinyInventoryItemDefinition;
     if(!itemDefinitionPath)throw new Error('Bungie’s manifest response did not include the full item definitions.');
     const base='https://www.bungie.net';
     const makeUrl=p=>/^https?:/i.test(p)?p:new URL(p,base).href;
@@ -369,7 +368,13 @@
       statUrl?fetchJsonCached(statUrl):Promise.resolve({}),
       bucketUrl?fetchJsonCached(bucketUrl):Promise.resolve({})
     ]);
-    live.itemDefs=results[0]||{};
+    const itemDefs=results[0];
+    const sample= itemDefs && Object.values(itemDefs).find(d=>d&&d.displayProperties&&d.displayProperties.name);
+    if(!itemDefs||typeof itemDefs!=='object'||!sample) {
+      if(window.caches)try{const cache=await caches.open(CACHE_NAME);await cache.delete(itemUrl);}catch(_){}
+      throw new Error('Bungie returned an invalid item-definition database. Reload the page and try Load inventory again.');
+    }
+    live.itemDefs=itemDefs;
     live.statDefs=results[1]||{};
     live.bucketDefs=results[2]||{};
     setStatus('Destiny definitions loaded');

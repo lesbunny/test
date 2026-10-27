@@ -228,7 +228,7 @@
     }
     const stateValue=randomState();
     sessionStorage.setItem('little-light-oauth-state',stateValue);
-    const url=new URL('https://www.bungie.net/en/OAuth/Authorize');
+    const url=new URL('https://www.bungie.net/en/oauth/authorize');
     url.searchParams.set('client_id',config.clientId);
     url.searchParams.set('response_type','code');
     url.searchParams.set('state',stateValue);

@@ -164,28 +164,26 @@
     return true;
   }
 
-  function openConnectModal(message) {
-    const token=tokenState();
-    const connected=isConnected();
+  function openConnectModal(message, editSettings = false) {
+    const connected=isConnected()&&!editSettings;
     const modal=document.getElementById('modal');
     modal.innerHTML =
       '<div class="ll-modal-head"><span class="ll-eyebrow">BUNGIE.NET CONNECTION</span><button class="icon-button" data-action="close-modal" aria-label="Close">×</button></div>'+
       '<h2 id="modalTitle">'+(connected?'Bungie is connected':'Connect your Guardian')+'</h2>'+
-      '<p class="ll-muted">Use your own Bungie developer app. Credentials stay in this browser and are never committed to GitHub.</p>'+
+      '<p class="ll-muted">The site uses a small Cloudflare Worker to keep Bungie’s OAuth client secret out of the public GitHub Pages code. Never put that secret in this page or in the repository.</p>'+
       (message?'<div class="inline-alert warning"><span class="alert-symbol">!</span><div>'+h(message)+'</div></div>':'')+
       (connected?
-        '<div class="ll-connection-success"><span class="status-dot"></span><div><b>'+h(live.profileDisplayName||'Bungie account')+'</b><small>'+h(live.membership&&live.membership.displayName||'Connected profile')+' · '+h(getSelectedCharacterName())+' selected</small></div></div>'+
-        '<div class="ll-modal-actions"><button class="button button-quiet" data-action="refresh-bungie">Refresh inventory</button><button class="button button-outline" data-action="disconnect-bungie">Disconnect</button><button class="button" data-action="close-modal">Done</button></div>'
+        '<div class="ll-connection-success"><span class="status-dot"></span><div><b>'+h(live.profileDisplayName||'Bungie account')+'</b><small>'+h(live.membership&&live.membership.displayName||'Connected profile')+' · '+h(getSelectedCharacterName())+' selected</small><small>Worker: '+h(config.workerUrl||'Not configured')+'</small></div></div>'+
+        '<div class="ll-modal-actions"><button class="button button-quiet" data-action="refresh-bungie">Refresh inventory</button><button class="button button-quiet" data-action="change-worker-url">Change Worker URL</button><button class="button button-outline" data-action="disconnect-bungie">Disconnect</button><button class="button" data-action="close-modal">Done</button></div>'
       :
-        '<ol class="ll-setup-steps"><li>Open <a href="https://www.bungie.net/en/Application" target="_blank" rel="noreferrer">Bungie Application Portal ↗</a> and register a <b>Public</b> client.</li><li>Enable <code>ReadBasicUserProfile</code>, <code>ReadDestinyInventoryAndVault</code>, and <code>MoveEquipDestinyItems</code>.</li><li>Set the app Origin to <code>'+h(originForRedirect())+'</code> and Callback URL to <code>'+h(redirectUri())+'</code>.</li><li>Paste the API Key and Client ID below. Leave the client secret blank—this page must use a public client.</li></ol>'+
-        '<div class="field-stack"><label class="field-label" for="llApiKey">Bungie API Key</label><input class="control" id="llApiKey" autocomplete="off" spellcheck="false" value="'+h(config.apiKey||'')+'" placeholder="Paste your API key"></div>'+
-        '<div class="field-stack"><label class="field-label" for="llClientId">OAuth Client ID</label><input class="control" id="llClientId" autocomplete="off" spellcheck="false" value="'+h(config.clientId||'')+'" placeholder="Public client ID"></div>'+
-        '<div class="ll-security-note"><b>Never paste a client secret here.</b> A static GitHub Pages app cannot keep confidential secrets private. If Bungie requires a confidential client for your app, this needs a server-side OAuth callback instead.</div>'+
+        '<ol class="ll-setup-steps"><li>Deploy the <code>worker/</code> folder from <a href="https://github.com/lesbunny/test" target="_blank" rel="noreferrer">this repository ↗</a> to your own Cloudflare Workers account. Follow the <a href="https://github.com/lesbunny/test#connect-your-bungie-account" target="_blank" rel="noreferrer">connection guide ↗</a>.</li><li>Set the Worker secrets <code>BUNGIE_API_KEY</code>, <code>BUNGIE_CLIENT_ID</code>, <code>BUNGIE_CLIENT_SECRET</code> and <code>STATE_SECRET</code> in Cloudflare—not here.</li><li>In the Bungie Application Portal, set Origin to <code>'+h(originForRedirect())+'</code> and Redirect URL to your Worker’s exact <code>/oauth/callback</code> URL. Enable <code>ReadBasicUserProfile</code>, <code>ReadDestinyInventoryAndVault</code>, and <code>MoveEquipDestinyItems</code>.</li><li>Paste only the Worker’s base URL below, then click “Save & sign in”. Your Bungie API key and client secret are never entered into this site.</li></ol>'+
+        '<div class="field-stack"><label class="field-label" for="llWorkerUrl">Your Cloudflare Worker URL</label><input class="control" id="llWorkerUrl" autocomplete="url" spellcheck="false" value="'+h(config.workerUrl||'')+'" placeholder="https://little-light-bungie.your-name.workers.dev"></div>'+
+        '<div class="ll-security-note"><b>Why a Worker is required:</b> Bungie’s authorization-code exchange requires a client secret. A GitHub Pages page is public, so putting that secret in JavaScript would expose it to everyone.</div>'+
         '<div class="ll-modal-actions"><button class="button button-quiet" data-action="close-modal">Cancel</button><button class="button" data-action="save-bungie-settings">Save & sign in to Bungie ↗</button></div>'
       );
     document.getElementById('modalScrim').hidden=false;
   }
-  function openAccountModal(memberships) {
+    function openAccountModal(memberships) {
     const options=memberships.map((m,i)=>'<option value="'+i+'">'+h(m.displayName||m.membershipId)+' · '+h(PLATFORM_NAMES[m.membershipType]||('Platform '+m.membershipType))+' · ID '+h(m.membershipId)+'</option>').join('');
     document.getElementById('modal').innerHTML=
       '<div class="ll-modal-head"><span class="ll-eyebrow">DESTINY PROFILE</span><button class="icon-button" data-action="close-modal">×</button></div>'+
@@ -205,109 +203,149 @@
   }
 
   async function saveSettingsAndConnect() {
-    const apiKey=(document.getElementById('llApiKey')?.value||'').trim();
-    const clientId=(document.getElementById('llClientId')?.value||'').trim();
-    if(!apiKey||!clientId){LL.toast('Enter both your Bungie API Key and Public OAuth Client ID.','error');return;}
-    if(!/^\d+$/.test(clientId)){LL.toast('The OAuth Client ID should be the numeric ID from Bungie’s application portal.','error');return;}
-    saveConfig({apiKey,clientId});
+    const raw=(document.getElementById('llWorkerUrl')?.value||'').trim().replace(/\/+$/,'');
+    let url;
+    try { url=new URL(raw); }
+    catch (_) { LL.toast('Enter the base URL of your deployed Cloudflare Worker.','error');return; }
+    if(url.protocol!=='https:' && url.hostname!=='localhost' && url.hostname!=='127.0.0.1') {
+      LL.toast('The Worker URL must use HTTPS.','error');return;
+    }
+    if(url.pathname!=='/'||url.search||url.hash) {
+      LL.toast('Enter only the Worker base URL, without a path, query or fragment.','error');return;
+    }
+    const workerUrl=url.origin;
+    try {
+      const response=await fetch(workerUrl+'/health',{headers:{'Accept':'application/json'}});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.ok)throw new Error(data.error||('Worker health check returned HTTP '+response.status+'.'));
+      if(!data.oauthConfigured||!data.apiKeyConfigured)throw new Error('The Worker is reachable, but one or more Bungie secrets are missing. Add the required secrets in Cloudflare, then retry.');
+    } catch(err) {
+      LL.toast('Could not verify the Worker: '+(err&&err.message||String(err)),'error');return;
+    }
+    saveConfig({workerUrl});
     closeModal();
     startOAuth();
   }
-  function startOAuth() {
-    if(!config.apiKey||!config.clientId){openConnectModal('Add a Bungie API Key and Public OAuth Client ID first.');return;}
-    const stateValue=randomState();
-    sessionStorage.setItem('little-light-oauth-state',stateValue);
-    sessionStorage.setItem('little-light-oauth-redirect',redirectUri());
-    const url=new URL('https://www.bungie.net/en/OAuth/Authorize');
-    url.searchParams.set('client_id',config.clientId);
-    url.searchParams.set('response_type','code');
-    url.searchParams.set('state',stateValue);
-    url.searchParams.set('redirect_uri',redirectUri());
-    location.assign(url.toString());
+    function startOAuth() {
+    if(!config.workerUrl) { openConnectModal('Deploy your Cloudflare Worker first, then paste its URL here.');return; }
+    const url=new URL(config.workerUrl.replace(/\/+$/,'')+'/oauth/start');
+    url.searchParams.set('return_to',redirectUri());
+    location.assign(url.href);
   }
-  function randomState() {
+    function randomState() {
     const data=new Uint8Array(24);
     crypto.getRandomValues(data);
     return Array.from(data,x=>x.toString(16).padStart(2,'0')).join('');
   }
   function closeModal() { const scrim=document.getElementById('modalScrim');if(scrim)scrim.hidden=true; }
+  function decodeOAuthPayload(value) {
+    const normalized=String(value||'').replace(/-/g,'+').replace(/_/g,'/');
+    const binary=atob(normalized+'='.repeat((4-normalized.length%4)%4));
+    const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
   async function handleOAuthCallback() {
     const url=new URL(location.href);
-    const code=url.searchParams.get('code');
-    const error=url.searchParams.get('error');
-    if(error) {
+    const fragment=url.hash.startsWith('#')?url.hash.slice(1):url.hash;
+    const hashParams=new URLSearchParams(fragment);
+    const successPayload=hashParams.get('bungie-auth');
+    const errorPayload=hashParams.get('bungie-auth-error');
+    if(errorPayload) {
+      let message='Bungie authorization did not complete.';
+      try {
+        const data=decodeOAuthPayload(errorPayload);
+        message=[data.error,data.description].filter(Boolean).join(': ')||message;
+      } catch (_) {}
       cleanOAuthUrl();
-      if(error!=='access_denied')LL.toast('Bungie sign-in returned: '+error,'error');
+      if(!/access_denied|cancel/i.test(message))openConnectModal(message);
       return;
     }
-    if(!code)return;
-    const expected=sessionStorage.getItem('little-light-oauth-state');
-    const given=url.searchParams.get('state');
-    if(!expected||!given||expected!==given) {
-      cleanOAuthUrl();
-      openConnectModal('The sign-in state check failed. Please start the Bungie sign-in again.');
+    if(successPayload) {
+      try {
+        const data=decodeOAuthPayload(successPayload);
+        if(!data.access_token)throw new Error('The Worker callback did not return an access token.');
+        saveToken({
+          access_token:data.access_token,
+          refresh_token:data.refresh_token||'',
+          expires_at:Date.now()+Number(data.expires_in||3600)*1000,
+          refresh_expires_at:Date.now()+Number(data.refresh_expires_in||0)*1000,
+        });
+        cleanOAuthUrl();
+        await findMemberships();
+      } catch(err) {
+        cleanOAuthUrl();
+        setStatus('Bungie connection failed');
+        openConnectModal('Could not finish sign-in: '+(err&&err.message||String(err)));
+      }
       return;
     }
-    if(!config.clientId||!config.apiKey) {
+    // Old direct-to-Bungie callbacks are deliberately not exchanged in the public page.
+    if(url.searchParams.has('code')||url.searchParams.has('error')) {
       cleanOAuthUrl();
-      openConnectModal('Connection settings were missing when Bungie returned to the site. Save your API Key and Client ID, then retry.');
-      return;
-    }
-    try {
-      setStatus('Exchanging Bungie authorization code…');
-      const body=new URLSearchParams({grant_type:'authorization_code',code:code,client_id:config.clientId,redirect_uri:redirectUri()});
-      const response=await fetch('https://www.bungie.net/Platform/App/OAuth/token/',{
-        method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()
-      });
-      const data=await response.json().catch(()=>({}));
-      if(!response.ok||!data.access_token)throw new Error(data.error_description||data.Message||('Token exchange failed (HTTP '+response.status+'). Check that this app is registered as Public and the callback URL matches exactly.'));
-      saveToken({access_token:data.access_token,refresh_token:data.refresh_token||'',expires_at:Date.now()+Number(data.expires_in||3600)*1000,refresh_expires_at:Date.now()+Number(data.refresh_expires_in||86400)*1000});
-      cleanOAuthUrl();
-      sessionStorage.removeItem('little-light-oauth-state');
-      await findMemberships();
-    } catch(err) {
-      cleanOAuthUrl();
-      setStatus('Bungie connection failed');
-      openConnectModal('Could not complete OAuth: '+(err&&err.message||String(err)));
+      openConnectModal('This site now requires the Cloudflare Worker callback. Set your Bungie Redirect URL to the Worker’s /oauth/callback endpoint and try again.');
     }
   }
   function cleanOAuthUrl() {
     const url=new URL(location.href);
-    ['code','state','error','error_description'].forEach(k=>url.searchParams.delete(k));
-    history.replaceState({},document.title,url.pathname+url.search+url.hash);
+    history.replaceState({},document.title,url.pathname+url.search);
   }
-  async function accessToken() {
-    const t=tokenState();
+    async function accessToken() {
+    let t=tokenState();
     if(!t||!t.access_token)throw new Error('Your Bungie session has expired. Connect again.');
     if(Number(t.expires_at||0)>Date.now()+90000)return t.access_token;
-    // Bungie Public OAuth clients do not receive refresh tokens. Never attempt to refresh with an absent token.
-    dropToken();
-    live.connected=false;
-    throw new Error('Your Bungie sign-in expired. Reconnect to continue; public Bungie clients do not receive refresh tokens.');
+    if(!t.refresh_token) {
+      dropToken();
+      live.connected=false;
+      throw new Error('Your Bungie session expired and no refresh token was returned. Reconnect to continue.');
+    }
+    if(!config.workerUrl)throw new Error('Your Cloudflare Worker URL is missing. Open Connect Bungie to configure it.');
+    const response=await fetch(config.workerUrl.replace(/\/+$/,'')+'/oauth/refresh',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({refresh_token:t.refresh_token}),
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data.access_token) {
+      dropToken();live.connected=false;
+      throw new Error(data.error||data.error_description||data.Message||'Bungie token refresh failed. Reconnect to continue.');
+    }
+    t={
+      access_token:data.access_token,
+      refresh_token:data.refresh_token||t.refresh_token,
+      expires_at:Date.now()+Number(data.expires_in||3600)*1000,
+      refresh_expires_at:Date.now()+Number(data.refresh_expires_in||0)*1000,
+    };
+    saveToken(t);
+    return t.access_token;
   }
-  async function bungieRequest(path,options) {
+    async function bungieRequest(path,options) {
     options=options||{};
-    if(!config.apiKey)throw new Error('Missing Bungie API Key. Open Connect Bungie to configure it.');
-    const headers={'X-API-Key':config.apiKey,'Accept':'application/json'};
+    const base=(config.workerUrl||'').replace(/\/+$/,'');
+    if(!base)throw new Error('Your Cloudflare Worker URL is not configured. Click Connect Bungie.');
+    const headers={'Accept':'application/json'};
     if(options.auth!==false)headers.Authorization='Bearer '+await accessToken();
     if(options.body!==undefined)headers['Content-Type']='application/json';
     let response;
     try {
-      response=await fetch(API+path,{method:options.method||'GET',headers:headers,body:options.body===undefined?undefined:JSON.stringify(options.body)});
+      response=await fetch(base+'/api'+path,{
+        method:options.method||'GET',
+        headers,
+        body:options.body===undefined?undefined:JSON.stringify(options.body),
+      });
     } catch(err) {
-      throw new Error('Could not reach Bungie’s API. Confirm the registered Origin is '+originForRedirect()+', and check browser network/privacy settings. '+(err&&err.message||''));
+      throw new Error('Could not reach the Little Light Worker. Check its URL, Cloudflare deployment, and ALLOWED_ORIGIN setting. '+(err&&err.message||''));
     }
     const data=await response.json().catch(()=>({}));
     if(!response.ok) {
-      if(response.status===401||response.status===403)throw new Error((data.Message||data.ErrorStatus||'Bungie rejected this request')+' (HTTP '+response.status+'). Check OAuth scopes and sign in again if needed.');
-      throw new Error((data.Message||data.ErrorStatus||'Bungie API request failed')+' (HTTP '+response.status+').');
+      if(response.status===401||response.status===403)throw new Error((data.Message||data.error||data.ErrorStatus||'Bungie rejected this request')+' (HTTP '+response.status+'). Check Worker secrets, OAuth scopes, and sign in again if needed.');
+      throw new Error((data.Message||data.error||data.ErrorStatus||'Bungie API request failed')+' (HTTP '+response.status+').');
     }
     if(data.ErrorCode!==undefined&&Number(data.ErrorCode)!==1) {
       throw new Error((data.Message||data.ErrorStatus||'Bungie API error')+' ('+(data.ErrorCode||'unknown')+').');
     }
     return data.Response;
   }
-  async function fetchJsonCached(url) {
+    async function fetchJsonCached(url) {
     if(window.caches) {
       try {
         const cache=await caches.open(CACHE_NAME);

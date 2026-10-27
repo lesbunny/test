@@ -354,13 +354,13 @@
     const componentPaths=manifest.jsonWorldComponentContentPaths&&manifest.jsonWorldComponentContentPaths.en||{};
     // Item definitions must come from the full world-content database. Component
     // paths are a separate lightweight database and must never override these URLs.
-    const itemDefinitionPath=worldPaths.DestinyInventoryItemDefinition||componentPaths.DestinyInventoryItemDefinition;
+    const itemDefinitionPath=componentPaths.DestinyInventoryItemDefinition||worldPaths.DestinyInventoryItemDefinition;
     if(!itemDefinitionPath)throw new Error('Bungie’s manifest response did not include the full item definitions.');
     const base='https://www.bungie.net';
     const makeUrl=p=>/^https?:/i.test(p)?p:new URL(p,base).href;
     const itemUrl=makeUrl(itemDefinitionPath);
-    const statPath=worldPaths.DestinyStatDefinition||componentPaths.DestinyStatDefinition;
-    const bucketPath=worldPaths.DestinyInventoryBucketDefinition||componentPaths.DestinyInventoryBucketDefinition;
+    const statPath=componentPaths.DestinyStatDefinition||worldPaths.DestinyStatDefinition;
+    const bucketPath=componentPaths.DestinyInventoryBucketDefinition||worldPaths.DestinyInventoryBucketDefinition;
     const statUrl=statPath?makeUrl(statPath):null;
     const bucketUrl=bucketPath?makeUrl(bucketPath):null;
     const results=await Promise.all([
@@ -374,9 +374,21 @@
       if(window.caches)try{const cache=await caches.open(CACHE_NAME);await cache.delete(itemUrl);}catch(_){}
       throw new Error('Bungie returned an invalid item-definition database. Reload the page and try Load inventory again.');
     }
+    function unwrapDefs(data, tableName) {
+      if(!data||typeof data!=='object')return null;
+      const sample=Object.values(data).find(d=>d&&d.displayProperties&&d.displayProperties.name);
+      if(sample)return data;
+      if(tableName&&data[tableName]&&typeof data[tableName]==='object'){
+        const nested=data[tableName];
+        if(Object.values(nested).find(d=>d&&d.displayProperties&&d.displayProperties.name))return nested;
+      }
+      if(data.Response)return unwrapDefs(data.Response, tableName);
+      return null;
+    }
+    itemDefs=unwrapDefs(itemDefs,'DestinyInventoryItemDefinition')||itemDefs;
     live.itemDefs=itemDefs;
-    live.statDefs=results[1]||{};
-    live.bucketDefs=results[2]||{};
+    live.statDefs=unwrapDefs(results[1],'DestinyStatDefinition')||results[1]||{};
+    live.bucketDefs=unwrapDefs(results[2],'DestinyInventoryBucketDefinition')||results[2]||{};
     setStatus('Destiny definitions loaded');
   }
   async function findMemberships() {
@@ -506,7 +518,7 @@
     const def=live.bucketDefs&&live.bucketDefs[String(id)];
     return def&&def.displayProperties&&def.displayProperties.name||'Other';
   }
-  function definitionFor(itemHash) { return live.itemDefs&&live.itemDefs[String(itemHash)]||{}; }
+  function definitionFor(itemHash) { if(!live.itemDefs||itemHash==null)return {}; const key=String(itemHash); return live.itemDefs[key]||live.itemDefs[Number(itemHash)]||{}; }
   function componentFor(name,itemId) {
     const c=live.profile&&live.profile.itemComponents&&live.profile.itemComponents[name];
     return c&&c.data&&c.data[String(itemId)]||{};
@@ -568,7 +580,7 @@
           if(STAT_NAMES[Number(hash)])statValues[name]=Number(value&&value.value!==undefined?value.value:value)||0;
         });
         const flags=Number(raw.state!==undefined?raw.state:(inst.state||0));
-        const name=def.displayProperties&&def.displayProperties.name||('Unknown item '+raw.itemHash);
+        const name=(def.displayProperties&&def.displayProperties.name&&String(def.displayProperties.name).trim())||def.displayName||def.itemTypeDisplayName||('Item #'+raw.itemHash);
         const iconPath=def.displayProperties&&def.displayProperties.icon||'';
         const icon=iconPath?(/^(?:https?:)?\/\//i.test(iconPath)?iconPath:'https://www.bungie.net'+(iconPath.startsWith('/')?'':'/')+iconPath):'';
         const type=isPostmaster?'Postmaster':gearBucket;

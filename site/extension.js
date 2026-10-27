@@ -218,7 +218,7 @@
       const response=await fetch(workerUrl+'/health',{headers:{'Accept':'application/json'}});
       const data=await response.json().catch(()=>({}));
       if(!response.ok||!data.ok)throw new Error(data.error||('Worker health check returned HTTP '+response.status+'.'));
-      if(!data.oauthConfigured||!data.apiKeyConfigured)throw new Error('The Worker is reachable, but one or more Bungie secrets are missing. Add the required secrets in Cloudflare, then retry.');
+      if(!data.oauthConfigured||!data.apiKeyConfigured||!data.stateSecretConfigured)throw new Error('The Worker is reachable, but one or more required secrets are missing or invalid. Add BUNGIE_API_KEY, BUNGIE_CLIENT_ID, BUNGIE_CLIENT_SECRET and a 32+ character STATE_SECRET in Cloudflare, then retry.');
     } catch(err) {
       LL.toast('Could not verify the Worker: '+(err&&err.message||String(err)),'error');return;
     }

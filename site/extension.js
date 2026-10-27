@@ -595,6 +595,7 @@
     if(item.trackedKillsUnknown)return {ok:false,reason:'Tracked kills could not be verified'};
     const roll=assessRoll(item);
     if(roll.status==='good')return {ok:false,reason:'Matches a community wishlist roll'};
+    if(roll.status==='unverified')return {ok:false,reason:'Active weapon perks could not be verified'};
     if(isArmor(item)&&totalStats(item)>=65)return {ok:false,reason:'High-stat armor (65+) is protected from staging'};
     return {ok:true,reason:'No protected roll or safety flag found'};
   }
@@ -705,7 +706,7 @@
     if(item.trackedKills!==null&&Number(item.trackedKills)>=500)return false;
     if(item.trackedKillsUnknown)return false;
     const roll=assessRoll(item);
-    if(roll.status==='good')return false;
+    if(roll.status==='good'||roll.status==='unverified')return false;
     if(isArmor(item)&&totalStats(item)>=65)return false;
     return true;
   }
@@ -1193,6 +1194,8 @@
 
   function assessRoll(item) {
     if(!item||!item.itemHash)return {status:'unknown',label:'No roll data',notes:'No item hash was available.'};
+    // Do not treat missing socket data as evidence that a weapon is a bad roll.
+    if(isWeapon(item)&&!(item.perkHashes||[]).length)return {status:'unverified',label:'Weapon perk data missing',notes:'Bungie did not return active socket plug hashes for this weapon. Staging and infusion-fuel selection are blocked until its roll can be verified.'};
     const hash=String(item.itemHash);
     const good=matchWishlist(live.goodRolls.get(hash)||[],item);
     if(good)return {status:'good',label:'Community wishlist match',notes:good.notes||'Matches a curated community weapon roll.',source:'voltron.txt'};
@@ -1306,6 +1309,7 @@
       let reason='No matching roll found; manual review only';
       let kind='Review';
       if(roll.status==='good'){reason=roll.notes||'Matches a curated community wishlist roll';kind='Community keeper';}
+      else if(roll.status==='unverified'){reason=roll.notes||'Active weapon perk data is missing';kind='Data incomplete';}
       else if(roll.status==='avoid'){reason=roll.notes||'Choosy wishlist marks this as a trash-roll candidate';kind='Trash candidate';}
       else if(isArmor(item)&&totalStats(item)>=65){reason='High-stat armor ('+totalStats(item)+' total)';kind='High-stat keeper';}
       else if(item.locked||localProtected(item)){reason='Locked, tagged or loadout-protected';kind='Protected';}

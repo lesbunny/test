@@ -13,6 +13,14 @@
     const delta=sort==='name'?String(a.name).localeCompare(String(b.name)):sort==='stats'?total(b)-total(a):sort==='bucket'?slotCompare(a.bucket,b.bucket):sort==='rarity'?Number(b.exotic)-Number(a.exotic):Number(b.power||0)-Number(a.power||0);
     return delta||String(a.name).localeCompare(String(b.name))||String(a.id).localeCompare(String(b.id));
   }
+  function statValue(item,expression){
+    const parts=expression.split('/');if(parts.length>2)return undefined;
+    const keys=parts[0].split('+');if(!keys.length||keys.some(k=>!k))return undefined;
+    const values=keys.map(key=>Object.entries(item.stats||{}).find(([s])=>text(s)===text(key))?.[1]);
+    if(values.some(v=>v==null||!Number.isFinite(Number(v))))return undefined;
+    const divisor=parts.length===2?Number(parts[1]):1;if(!Number.isFinite(divisor)||divisor<=0)return undefined;
+    return values.reduce((sum,v)=>sum+Number(v),0)/divisor;
+  }
   function matches(item,query,context={}) {
     const tokens=(text(query).match(/(?:[^\s()"]+|"[^"]*")+|[()]/g)||[]);
     const check=token=>{
@@ -24,8 +32,8 @@
       if(key==='is'&&value) {
         const flags={locked:!!item.locked,equipped:!!item.equipped,exotic:!!item.exotic,protected:!!context.protected?.(item),favorite:(item.tags||[]).some(t=>['favorite','fav'].includes(text(t))),vault:item.owner==='Vault',weapon:item.type==='Weapon',armor:item.type==='Armor',postmaster:!!item.isPostmaster,duplicate:!!context.duplicate?.(item),unresolved:!!item.definitionMissing,crafted:!!item.crafted,loadout:!!context.loadout?.(item),new:!!item.firstSeen&&!item.reviewedAt,wishlist:!!context.wishlist?.(item),dupe:!!context.duplicate?.(item)};
         result=flags[value]??(text(item.itemCategory||item.bucket).replace(/[^a-z0-9]/g,'')===value.replace(/[^a-z0-9]/g,'')||({1:'kinetic',2:'arc',3:'solar',4:'void',6:'stasis',7:'strand'})[item.damageType]===value);
-      } else if(['power','stat','total','kills'].includes(key)||key.startsWith('stat.')) {
-        const n=key==='power'?item.power:key==='kills'?item.trackedKills:key.startsWith('stat.')?Object.entries(item.stats||{}).find(([s])=>text(s)===key.slice(5))?.[1]:total(item);
+      } else if(['power','stat','total','kills','custom'].includes(key)||key.startsWith('stat.')) {
+        const n=key==='power'?item.power:key==='kills'?item.trackedKills:key==='custom'?context.custom?.(item):key.startsWith('stat.')?statValue(item,key.slice(5)):total(item);
         const range=value.match(/^(\d+)\.\.(\d+)$/);
         if(range){const yes=n!=null&&Number(n)>=Number(range[1])&&Number(n)<=Number(range[2]);return negative?!yes:yes;}
         const m=value.match(/^(>=|<=|>|<|=)?(\d+)$/);
@@ -86,6 +94,6 @@
     const best=plans.sort((a,b)=>b.score-a.score)[0];
     return {items:best?.items||[],score:best?.score||0,missing,complete:!!best&&best.items.length===5};
   }
-  const api={powerSet,armorPlan,slots,stats,total,slotCompare,compare,matches,unwrapDefinitions};
+  const api={statValue,powerSet,armorPlan,slots,stats,total,slotCompare,compare,matches,unwrapDefinitions};
   if(typeof module==='object')module.exports=api;else root.InventoryCore=api;
 })(typeof window==='object'?window:globalThis);

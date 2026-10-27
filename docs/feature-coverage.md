@@ -18,18 +18,29 @@ The supplied [complete inventory](requested-feature-inventory.txt) is the reques
 - Per-item infusion candidate research with conservative protection filters; existing bulk fuel staging retained.
 - Drag/drop on the character/vault board, contextual inspector shortcuts, keyboard help, density preferences, optional 15-minute visible-tab sync, static offline-shell cache and web manifest.
 
+## Continuation: organization, research, and build repair
+
+- Organizer columns are configurable per category, including perks, lock state, rarity, and a custom total. Select contributing armor stats separately for each class. Shift-click property cells to filter.
+- Search supports stat sums and division (for averages), class-specific `custom:` totals, global query history, native filter suggestions, and named favorites. Wishlist/loadout predicates now work consistently in the global search and Inventory board.
+- Saved builds can be searched by name, Guardian, notes, or hashtags and sorted by name or edit time. Missing-item repair ranks same-definition/same-slot owned candidates and shows perk overlap. Replacement changes the draft only; saving preserves the build ID and updates protection.
+- GitHub-hosted wishlist subscriptions have explicit refresh, enable/disable, remove, size limits, and last-valid-data retention on failure. The inspector shows up to eight recommended combinations and missing perks using the same matcher as protection checks.
+- Activities have a persistent personal To play list with manual completion and an unfinished-only filter. This is explicitly not lifetime clear history.
+- Records & seals uses the official presentation-node hierarchy with parent navigation, searchable categories, history URLs, completion-record links, and direct collection/triumph details. Account completion badges still require a real authenticated profile.
+- Single-character inventory board focuses one Guardian and combines eligible unequipped gear from other locations. Actual owners remain on cards; the combined group cannot be used as an ambiguous transfer destination.
+- The offline shell includes the new workflow script and activates new caches without requiring users to close every tab.
+
 ## Partially covered / remaining details
 
 | Requested group | Remaining work |
 | --- | --- |
 | Shard A–B: public site/database | Editorial home/guides/changelog/support, curated ranking and explanation pages, source/loot-table crosslinks, armor set bonuses, community-tested perk numbers, complete catalyst acquisition research. |
 | Shard C: account | Avatar polish, app-wide deletion including reference caches, hosted account lifecycle. Local backup/data management already exists. |
-| Shard D / DIM B–D: inventory/search | Single-character mode, complete smart-space reservations, auto-completion/history, full DIM predicates/stat arithmetic/custom totals, Champion grouping, double-click equip. |
-| Shard E–F: appraisal | Enhanced-perk equivalence, tier-aware duplicate ranking, missing-perk gap UI, Armor 3.0 archetypes/artifice/tuning/attainable-spread dominance/set/exotic-class-item/event-selector modeling. No letter grades are invented from incomplete evidence. |
+| Shard D / DIM B–D: inventory/search | Complete smart-space reservations, full DIM predicate coverage and richer context-sensitive autocomplete, Champion grouping, double-click equip. |
+| Shard E–F: appraisal | Enhanced-perk equivalence, tier-aware duplicate ranking, Armor 3.0 archetypes/artifice/tuning/attainable-spread dominance/set/exotic-class-item/event-selector modeling. No letter grades are invented from incomplete evidence. |
 | Shard G–I: cleanup | Ranked dominance queue, one-at-a-time Shard List keyboard session, comprehensive mod/subclass/artifact synergy audit. Existing staging remains conservative. |
-| Shard J / DIM N–P: builds | Natural-language AI builder and refinement, automatic replacement repair, batch loadout-level mod/subclass/aspect/fragment/fashion application, in-game loadout names/icons customization, class-independent configuration semantics, advanced build analysis. |
-| Shard K / DIM R–T: progression | Activity lifetime completion history, To play plans, seal/gilding hierarchy, destination-based completion routing, complete catalyst tracking, Pathfinder/milestones, collection/triumph tree navigation, vendor purchases. Native read-only record/vendor pages are a foundation, not equivalents of all of these. |
-| DIM E–K: management | Lock/tag synchronization policy, external GitHub wishlist subscriptions, curator editing, Clarity insights, configurable organizer columns, shift-cell filters, custom stat totals, compare multi-column ordering. |
+| Shard J / DIM N–P: builds | Natural-language AI builder and refinement, fully automatic replacement decisions, batch loadout-level mod/subclass/aspect/fragment/fashion application, in-game loadout names/icons customization, class-independent configuration semantics, advanced build analysis. |
+| Shard K / DIM R–T: progression | Activity lifetime completion history, dedicated gilding summaries, destination-based completion routing, complete catalyst tracking, Pathfinder/milestones, vendor purchases. Native read-only record/vendor pages are a foundation, not equivalents of all of these. |
+| DIM E–K: management | Lock/tag synchronization policy, curator-file editing tools, Clarity insights, compare multi-column ordering. |
 | DIM O: optimizer | Mod-energy/socket constraints, fragment/Font bonuses, tuning, artifice, masterwork assumptions, armor set bonuses, global exhaustive search on large collections. |
 | DIM V: sync/integrations | Cross-device cloud sync, Stream Deck integration, production installability matrix, complete offline/live-state UX. Local backups and offline shell do not provide cloud sync. |
 

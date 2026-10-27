@@ -1374,14 +1374,14 @@
     });
   }
 
-  let personalText=null,personalMap=new Map();
+  let personalInputs=[],personalMap=new Map();
   function assessRoll(item) {
     if(!item||!item.itemHash)return {status:'unknown',label:'No roll data',notes:'No item hash was available.'};
     // Do not treat missing socket data as evidence that a weapon is a bad roll.
     if(isWeapon(item)&&!(item.perkHashes||[]).length)return {status:'unverified',label:'Weapon perk data missing',notes:'Bungie did not return active socket plug hashes for this weapon. Staging and infusion-fuel selection are blocked until its roll can be verified.'};
     const hash=String(item.itemHash);
-    const text=state().preferences?.personalWishlist||'';
-    if(text!==personalText){personalMap=parseWishlist(text,'personal').map;personalText=text;}
+    const inputs=[state().preferences?.personalWishlist||'',...(state().preferences?.wishlistSources||[]).filter(s=>s.enabled!==false).map(s=>s.text||'')];
+    if(inputs.length!==personalInputs.length||inputs.some((text,index)=>text!==personalInputs[index])){personalMap=parseWishlist(inputs.join('\n'),'personal').map;personalInputs=inputs;}
     const personal=personalMap;
     const keep=matchWishlist([...(personal.get(hash)||[]),...(personal.get('-1')||[])],item);
     if(keep)return {status:'good',label:'Personal wishlist match',notes:keep.notes||'Matches your personal wishlist.'};
@@ -1393,6 +1393,13 @@
     if(avoid)return {status:'avoid',label:'Choosy trash candidate',notes:avoid.notes||'This roll is in choosy_voltron.txt but not the default keeper list; the source describes these additional entries as opinionated trash rolls.',source:'choosy_voltron.txt'};
     if(live.goodRolls.has(hash)||live.choosyRolls.has(hash))return {status:'known',label:'Community rolls exist; current roll not matched',notes:'A roll for this item exists in the source list, but the active perks were not an exact match.'};
     return {status:live.rollStatus==='ready'?'none':'unknown',label:live.rollStatus==='ready'?'No matching wishlist roll':'Roll data not loaded',notes:live.rollStatus==='ready'?'No exact match was found in these community files. This does not prove an item is bad.':'Load community roll data before relying on wishlist-based safety checks.'};
+  }
+  function rollGaps(item) {
+    if(!item||!isWeapon(item)||!(item.perkHashes||[]).length)return [];
+    // Refresh the parsed personal/subscribed list, using the same data as protection checks.
+    assessRoll(item);
+    const entries=[...(personalMap.get(String(item.itemHash))||[]),...(personalMap.get('-1')||[]),...(live.goodRolls.get(String(item.itemHash))||[])];
+    return entries.map(entry=>({notes:entry.notes,source:entry.source,perks:entry.perks.map(hash=>({hash,name:componentPerkName(hash)||'Perk #'+hash,matched:!!matchWishlist([{perks:[hash]}],item)}))})).sort((a,b)=>a.perks.filter(p=>!p.matched).length-b.perks.filter(p=>!p.matched).length).slice(0,8);
   }
   function matchWishlist(entries,item) {
     if(!entries||!entries.length)return null;
@@ -1820,7 +1827,7 @@
     const c=getSelectedCharacter();if(!c)throw new Error('Select a Guardian first.');
     return bungieRequest('/Destiny2/'+live.membership.membershipType+'/Profile/'+live.membership.membershipId+'/Character/'+c.characterId+'/Vendors/?components=400,401,402');
   }
-  window.LittleLightExtension={handlesPage,renderPage,afterRender,assessRoll,readProfile,readVendors,previewWorkbench,gameLoadouts,socketOptions,previewGameAction,
+  window.LittleLightExtension={handlesPage,renderPage,afterRender,assessRoll,rollGaps,readProfile,readVendors,previewWorkbench,gameLoadouts,socketOptions,previewGameAction,
     setPersonalWishlist:text=>{if(text.trim()&&!parseWishlist(text,'personal').count)throw new Error('No valid dimwishlist entries were found.');},
     refreshIfIdle:()=>{if(isConnected()&&!live.busy&&!live.farmCycleRunning)refreshLiveInventory().catch(err=>LL.toast(err.message,'error'));}
   };

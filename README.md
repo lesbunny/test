@@ -1,58 +1,52 @@
 # Little Light — Destiny Companion
 
-A dark-lavender Destiny 2 inventory companion hosted on GitHub Pages. It is an independent community project inspired by workflows in [Destiny Item Manager](https://destinyitemmanager.com/) and [Shard or Keep](https://shardorkeep.com/); it is not affiliated with Bungie or those projects.
+A dark-lavender Destiny 2 companion hosted on GitHub Pages, with inventory-management workflows inspired by [Destiny Item Manager](https://destinyitemmanager.com/) and [Shard or Keep](https://shardorkeep.com/). Independent community project; not affiliated with Bungie or those projects.
 
-## Live features
+## Features
 
-- **Bungie connection:** direct browser OAuth, live profile/character/inventory sync, manifest-based item names/icons/perks and local tagging. Enter your own credentials in the connect dialog; no Worker deployment is required.
-- **Real inventory actions:** preview-confirmed transfers to/from the Vault, equip, lock/unlock and pulling items from the Postmaster.
-- **Farming Mode:** watches the selected character's eligible gear buckets while the site stays open and attempts safe transfers to the Vault to maintain 1–9 empty slots per bucket. It does not dismantle items.
-- **Bulk actions:** move unequipped character weapons/armor to Vault, prepare a confirmed Shard List dismantling session, stage eligible infusion fuel, and review/apply a maximum-power set.
-- **Postmaster:** inspect items returned by Bungie and pull them to the owning Guardian.
-- **Shard List & vault review:** manually confirm junk, identify exact DIM wishlist perk matches, review duplicates/high-stat armor and use the queue to stage safe items. The site never dismantles items.
-- **Community roll data:** downloads DIM's default keeper wishlist (`voltron.txt`) and the extra opinionated trash-roll entries in `choosy_voltron.txt` from [48klocs/dim-wish-list-sources](https://github.com/48klocs/dim-wish-list-sources). Exact matches to the default list are protected as keepers; choosy-only matches are shown as trash candidates but still require you to manually confirm each item. “No wishlist match” does not mean an item is bad.
-- **Setup audit:** a transparent heuristic over the selected Guardian's equipped items and active socket names. It is not a claim of LLM-powered build analysis.
-- **Local data:** browser-stored notes, tags, Shard List and loadout snapshots; CSV / JSON import and export.
+- **Bungie connection:** OAuth starts at a Cloudflare Worker. The Worker holds the Bungie API key and OAuth client secret, while the browser stores the returned access/refresh tokens for this session. The page never asks you to paste a secret into it.
+- **Live Guardian inventory:** reads the selected Destiny profile, characters, Vault, gear stats, active perks, equipped state, locks and available Postmaster items using Bungie's API and item manifest.
+- **Farming Mode:** when enabled, checks the selected Guardian's eligible item buckets while the tab remains open and moves one safe candidate to the Vault when needed to maintain the chosen number of open slots. It never dismantles items.
+- **Bulk actions:** move unequipped character weapons/armor into the Vault; prepare a confirmed Shard List dismantling session; stage high-power infusion fuel; preview and equip a maximum-power set.
+- **Postmaster:** inspect Postmaster items across Guardians and pull selected items to the owning Guardian.
+- **Shard List & vault review:** confirm potential junk manually, inspect duplicate rolls, compare with community weapon wishlists, protect exotics/high-stat armor/locked gear and use the list to stage items for an in-game dismantling session.
+- **Community roll data:** loads [DIM's Voltron wishlist](https://github.com/48klocs/dim-wish-list-sources) and its optional opinionated choosy wishlist. Exact matches to the default keeper list are protected. Choosy-only matches are flagged for review, not automatically dismantled. A missing match never proves an item is bad.
+- **Maximum-power planner and loadout audit:** builds an inventory-aware highest-power preview and a transparent keyword-based setup review. The setup audit is heuristic—not an LLM-powered optimizer and not a complete mod/subclass solver.
+- **Local-first preferences:** browser-saved tags, notes, Shard List and loadout snapshots; CSV/JSON import and export.
 
-## Connect your own Bungie account
+## Connect your Bungie account
 
-Little Light now supports **direct browser OAuth**: enter your Bungie API Key, OAuth Client ID, and OAuth Client Secret in the connection dialog. Credentials are not hardcoded into `site/extension.js` or committed to Git. The API key and Client ID are stored in this browser's local storage; the Client Secret and access/refresh tokens use session storage for the current browser session.
+The static website cannot safely keep a confidential OAuth secret: GitHub Pages serves its JavaScript to visitors even if the repository is private. The project therefore includes a small Cloudflare Worker in the worker directory.
 
-1. Open the [Bungie Application Portal](https://www.bungie.net/en/Application) and get the API Key, OAuth Client ID, and OAuth Client Secret for your app.
-2. Set the registered **Redirect URL** to `https://lesbunny.github.io/test/` exactly, including the trailing slash. Set **Origin** to `https://lesbunny.github.io`.
-3. Enable **ReadBasicUserProfile**, **ReadDestinyInventoryAndVault**, and **MoveEquipDestinyItems**.
-4. Open [Little Light](https://lesbunny.github.io/test/), click **Connect Bungie**, paste the three credentials, and choose **Save & sign in to Bungie**.
-5. Approve access on Bungie's sign-in screen and choose your Destiny platform membership if prompted.
+Follow **[Connect your Bungie account](worker/README.md#connect-your-bungie-account)** for setup. In brief:
 
-**Important:** a GitHub Pages website remains publicly inspectable even if the source repository is private. Do not paste your actual Client Secret into JavaScript or commit it into source files. Enter it in the app's password field instead; it is stored in session storage in your browser and cleared when that browser session ends. The optional `worker/` folder contains an alternative Cloudflare Worker backend for anyone who prefers server-side secret handling; it is not required by the current direct-connect mode.
+1. Deploy the worker directory to your Cloudflare account.
+2. Add BUNGIE_API_KEY, BUNGIE_CLIENT_ID, BUNGIE_CLIENT_SECRET, and STATE_SECRET as Cloudflare Worker secrets.
+3. Configure your Bungie application Origin as https://lesbunny.github.io and its Redirect URL as your deployed Worker URL plus /oauth/callback.
+4. Enable ReadBasicUserProfile, ReadDestinyInventoryAndVault, and MoveEquipDestinyItems.
+5. In [Little Light](https://lesbunny.github.io/test/), click **Connect Bungie**, paste only the HTTPS Worker base URL, and choose **Save & sign in to Bungie**.
 
-## Destructive-action and data-safety limits
+**Never put the OAuth client secret or Bungie API key in the site directory or any client-side JavaScript.** Don't commit these secrets to GitHub, even if you plan to make the source repository private. Cloudflare's Worker secret store is the intended place for them.
 
-- **Dismantling is always in-game and manual.** The published Destiny API exposes transfer/equip/lock/Postmaster actions but no public dismantle-item endpoint. Shard List is a confirmation and staging queue, not a dismantle button.
-- Staging excludes locked items, Exotics, exact matches to DIM's default `voltron.txt` keeper wishlist, loadout/local protection, high-stat armor (65+ total), and weapons marked as tracked when their kill count is 500+ or cannot be verified. Choosy-only wishlist matches are trash candidates, not automatic dismantle decisions; they still need your manual confirmation.
-- Community roll data is a safeguard, not a universal god-roll oracle. Its coverage is weapons/perk combinations from curated wishlists. You should inspect each item's actual perks and confirm every shard candidate yourself.
-- Bulk moves and max-power equipment require a confirmation dialog. API operations may partially succeed; check the operation report and refresh the site before repeating failed actions.
-- Real inventory calls require Bungie to allow the registered site's origin and API scopes. If connection fails, no live action is considered successful.
-- Vault capacity is displayed as 1,300 slots in line with Bungie's published inventory update. Treat the count as an estimate and verify in game.
-- Farming Mode runs only while the site is open and authorized. It is not a background service and it won't run while the browser is closed.
+## Safety boundaries
 
-## Deploy / develop
+- The public Destiny API exposes item transfer, equip, lock and Postmaster-pull operations, but not an item-dismantle endpoint. **Dismantling always happens in-game, by you.** The Shard List only tracks confirmed candidates and stages them on the selected Guardian.
+- Staging excludes items that are locked, exotic, protected or loadout-referenced, exact matches to DIM's keeper wishlist, high-stat armor (65+ total), and tracked weapons with 500+ kills or unverifiable tracked-kill data. A choosy-only roll is a suggestion to review, not permission to dismantle.
+- Roll databases are community curation, not a universal god-roll oracle. The lists mainly describe weapon perk combinations; inspect your actual roll and confirm every item before dismantling.
+- Bulk actions show a preview and require explicit confirmation. Network failures can produce partial success; read the operation report and refresh before repeating a bulk action.
+- Vault free space and inventory counts depend on the latest Bungie response. Recheck in game if you are close to capacity.
+- Farming Mode runs only while this app tab remains open. It does not run in the background and never destroys items.
 
-The Actions workflow deploys `site/` to GitHub Pages on pushes to `main`. JavaScript syntax checks run before upload.
+## Development
 
-The Pages app uses plain HTML, CSS and JavaScript. The optional `worker/` folder is a separate backend alternative; see its README only if you want server-side credential handling. For local Pages development, serve `site/` over HTTP rather than opening `index.html` from a `file://` URL:
+The Pages workflow publishes the site directory and validates JavaScript plus the Worker's unit tests on each push to main.
 
-```bash
-python -m http.server 8000 --directory site
-```
+To work locally, install Node.js and npm, then run these commands from the worker directory: npm install, npm test, and npm run dev. For a deploy, run npx wrangler login, configure the secrets listed above, and run npm run deploy. See [the Worker setup guide](worker/README.md).
 
-Open `http://localhost:8000/`. Bungie’s registered callback/origin must be updated if you want to test OAuth from a different host.
-
-## Sources
+## Upstream references
 
 - [Bungie OAuth documentation](https://github.com/Bungie-net/api/wiki/OAuth-Documentation)
-- [Bungie Destiny API reference](https://bungie-net.github.io/)
-- [Bungie OAuth scopes](https://github.com/Bungie-net/api/wiki/Scopes)
-- [DIM wishlists documentation](https://github.com/DestinyItemManager/DIM/wiki/Wish-Lists)
-- [DIM wish-list source files](https://github.com/48klocs/dim-wish-list-sources)
-- [Bungie Inventory, Vault and Postmaster help](https://help.bungie.net/hc/en-us/articles/360049199931-Destiny-2-Inventory-Management-Postmaster-Vault-and-Character-Inventory)
+- [Official Bungie API reference](https://bungie-net.github.io/)
+- [DIM Inventory guide](https://github.com/DestinyItemManager/DIM/wiki/Inventory)
+- [DIM Wish Lists guide](https://github.com/DestinyItemManager/DIM/wiki/Wish-Lists)
+- [Community wishlist source repository](https://github.com/48klocs/dim-wish-list-sources)

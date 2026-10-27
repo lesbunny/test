@@ -26,7 +26,7 @@ jobs:
       - name: Validate browser app
         run: |
           node --check site/extension.js
-          node --input-type=commonjs -e "const fs=require('node:fs'),vm=require('node:vm'),html=fs.readFileSync('site/index.html','utf8');const scripts=[...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/g)].map(m=>m[1]).filter(s=>s.trim());scripts.forEach((s,i)=>new vm.Script(s,{filename:'inline-app-'+i+'.js'}));console.log('Validated '+scripts.length+' inline script(s).')"
+          node --input-type=commonjs -e 'const fs=require("node:fs"),vm=require("node:vm"),html=fs.readFileSync("site/index.html","utf8");const scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(s=>s.trim());scripts.forEach((s,i)=>new vm.Script(s,{filename:"inline-app-"+i+".js"}));console.log("Validated "+scripts.length+" inline script(s).");'
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload site artifact

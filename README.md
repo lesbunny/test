@@ -92,3 +92,9 @@ Dark Material styling is the default. The menu also includes conservative armor/
 Signed-in DIM operations need live-account verification; shipping upstream code does not establish that every feature works with this deployment's Public OAuth scopes. DIM Sync requires a separately registered DIM API key, which this deployment does not provide. DIM's loadouts/tags and companion loadouts/tags are currently separate stores; refresh the companion after engine mutations and explicitly protect companion gear before a Shard List session. Companion safeguards are unchanged. Dismantling remains in-game.
 
 This does not reproduce Shard or Keep's proprietary DestinyGPT, hosted AI loadout generation, shared cloud builds, or its complete Armor 3.0 tuning/dominance model. Appraisal reports observed stats and wishlist matches, not proof that an item is safe to dismantle. The signed-in Shard dashboard could not be inspected without an account.
+
+## Screenshot-inspired workspace
+
+The default dashboard and Equipped, Vault, Weapons, Armor, and Search views use a persistent sidebar, a global search header, compact appraisal cards, and dark Material surfaces. Equipped separates worn gear from carried alternatives in each equipment slot. Each Guardian's Save as loadout button opens the existing save dialog with that Guardian selected.
+
+Dashboard counts use the current inventory; its recent-drop panel uses observed timestamps and clearly labels the sample inventory. Wishlist badges require an exact community match. Keep means local protection, and Unrated means no decision has been established. Global search supports the companion query syntax and the `/` shortcut. Native DIM remains in the Tools menu.

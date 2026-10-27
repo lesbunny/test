@@ -10,7 +10,7 @@ A dark-lavender Destiny 2 inventory companion hosted on GitHub Pages. It is an i
 - **Bulk actions:** move unequipped character weapons/armor to Vault, prepare a confirmed Shard List dismantling session, stage eligible infusion fuel, and review/apply a maximum-power set.
 - **Postmaster:** inspect items returned by Bungie and pull them to the owning Guardian.
 - **Shard List & vault review:** manually confirm junk, identify exact DIM wishlist perk matches, review duplicates/high-stat armor and use the queue to stage safe items. The site never dismantles items.
-- **Community roll data:** downloads DIM's curated `voltron.txt` wishlist and `choosy_voltron.txt` review list from [48klocs/dim-wish-list-sources](https://github.com/48klocs/dim-wish-list-sources). “No wishlist match” does not mean an item is bad.
+- **Community roll data:** downloads DIM's default keeper wishlist (`voltron.txt`) and the extra opinionated trash-roll entries in `choosy_voltron.txt` from [48klocs/dim-wish-list-sources](https://github.com/48klocs/dim-wish-list-sources). Exact matches to the default list are protected as keepers; choosy-only matches are shown as trash candidates but still require you to manually confirm each item. “No wishlist match” does not mean an item is bad.
 - **Setup audit:** a transparent heuristic over the selected Guardian's equipped items and active socket names. It is not a claim of LLM-powered build analysis.
 - **Local data:** browser-stored notes, tags, Shard List and loadout snapshots; CSV / JSON import and export.
 
@@ -30,7 +30,7 @@ The API Key and client ID are stored in this browser's local storage; the OAuth 
 ## Destructive-action and data-safety limits
 
 - **Dismantling is always in-game and manual.** The published Destiny API exposes transfer/equip/lock/Postmaster actions but no public dismantle-item endpoint. Shard List is a confirmation and staging queue, not a dismantle button.
-- Staging excludes locked items, Exotics, known DIM-wishlist matches / choosy-list flags, loadout/local protection, high-stat armor (65+ total), and weapons marked as tracked when their kill count is 500+ or cannot be verified.
+- Staging excludes locked items, Exotics, exact matches to DIM's default `voltron.txt` keeper wishlist, loadout/local protection, high-stat armor (65+ total), and weapons marked as tracked when their kill count is 500+ or cannot be verified. Choosy-only wishlist matches are trash candidates, not automatic dismantle decisions; they still need your manual confirmation.
 - Community roll data is a safeguard, not a universal god-roll oracle. Its coverage is weapons/perk combinations from curated wishlists. You should inspect each item's actual perks and confirm every shard candidate yourself.
 - Bulk moves and max-power equipment require a confirmation dialog. API operations may partially succeed; check the operation report and refresh the site before repeating failed actions.
 - Real inventory calls require Bungie to allow the registered site's origin and API scopes. If connection fails, no live action is considered successful.

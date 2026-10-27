@@ -210,6 +210,16 @@
     if(data && data.response?.data?.items) return null; // Raw Bungie API profiles need manifest/hash resolution; don't mislabel as imported inventory.
     return null;
   }
+  function normalizeWorkspaceItem(raw, index) {
+    const item=raw&&typeof raw==='object'?raw:{};
+    const bucket=String(item.bucket||item.slot||'Other');
+    const rarity=String(item.rarity||'Legendary');
+    const tags=Array.isArray(item.tags)?item.tags.map(String):String(item.tags||'').split(/[;,|]/).map(x=>x.trim()).filter(Boolean);
+    const perks=Array.isArray(item.perks)?item.perks.map(String):String(item.perks||'').split(/[;,|]/).map(x=>x.trim()).filter(Boolean);
+    const stats=item.stats&&typeof item.stats==='object'&&!Array.isArray(item.stats)?{...item.stats}:{};
+    const bool=v=>typeof v==='string'?/^(true|1|yes|y)$/i.test(v.trim()):Boolean(v);
+    return {...item,id:String(item.id||`workspace-${Date.now()}-${index}`),name:String(item.name||item.Name||'Unknown item'),bucket,type:String(item.type||inferType(bucket)),owner:String(item.owner||'Vault'),power:numeric(item.power,0),rarity,equipped:bool(item.equipped),locked:bool(item.locked),tags,notes:String(item.notes||''),icon:String(item.icon||''),perks,stats,exotic:item.exotic!==undefined?bool(item.exotic):/exotic/i.test(rarity),transferable:item.transferable!==false,itemHash:String(item.itemHash||'')};
+  }
   function saveLog(text) { state.log.unshift({id:`log-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,text,at:new Date().toISOString()}); state.log=state.log.slice(0,30); }
   function toast(message, kind='') {
     const node=document.createElement('div');node.className=`toast ${kind}`;node.textContent=message;$('#toastRegion').append(node);setTimeout(()=>node.remove(),3600);
@@ -384,15 +394,15 @@
   function exportFarmCSV() {const p=lastFarmPlan||buildFarmPlan();const rows=[['Item','Bucket','From','To','Action'],...p.plan.map(x=>[x.name,x.bucket,x.from,x.to,'Move to Vault'])];download('little-light-farm-plan.csv',rows.map(r=>r.map(csvCell).join(',')).join('\r\n'),'text/csv;charset=utf-8');toast(`Exported ${p.plan.length} planned moves.`,'success');}
   function importFile(file) {
     const reader=new FileReader();reader.onerror=()=>toast('Could not read that file.','error');reader.onload=()=>{
-      let imported=[], workspace=null;
+      let imported=[], workspace=null, workspaceBackup=false;
       try{
-        if(file.name.toLowerCase().endsWith('.json')){workspace=asWorkspace(JSON.parse(reader.result));if(!workspace){toast('This JSON does not look like a Little Light workspace. Raw Bungie profile JSON needs manifest resolution first.','error');return;}imported=workspace.items.map((x,i)=>normalizeImportedItem({...x},i)).filter(Boolean);}
+        if(file.name.toLowerCase().endsWith('.json')){const parsed=JSON.parse(reader.result);workspace=asWorkspace(parsed);if(!workspace){toast('This JSON does not look like a Little Light workspace. Raw Bungie profile JSON needs manifest resolution first.','error');return;}workspaceBackup=!!(!Array.isArray(parsed)&&Array.isArray(parsed.items));imported=workspace.items.map((x,i)=>workspaceBackup?normalizeWorkspaceItem(x,i):normalizeImportedItem({...x},i)).filter(Boolean);}
         else imported=parseCSV(String(reader.result)).map(normalizeImportedItem).filter(Boolean);
       }catch(err){toast(`Import failed: ${err.message||'invalid file'}`,'error');return;}
       if(!imported.length){toast('No inventory rows were recognized. Check that the file has a Name or Item column.','error');return;}
       const append=$('#appendImport')?.checked;
       if(append){const existing=new Set(state.items.map(i=>i.id));imported=imported.map((i,n)=>({...i,id:existing.has(i.id)?`${i.id}-import-${Date.now()}-${n}`:i.id}));state.items.push(...imported);}
-      else {state.items=imported;state.loadouts=[];state.compareIds=[];state.log=[];}
+      else {state.items=imported;if(workspaceBackup){state.loadouts=Array.isArray(workspace.loadouts)?workspace.loadouts:[];state.farm={...getDefaultState().farm,...(workspace.farm||{})};state.log=Array.isArray(workspace.log)?workspace.log:[];state.compareIds=Array.isArray(workspace.compareIds)?workspace.compareIds:[];}else{state.loadouts=[];state.compareIds=[];state.log=[];}}
       state.demo=false;state.bannerDismissed=true;saveLog(`${append?'Appended':'Imported'} ${imported.length} item rows from ${file.name}`);persist();
       if(state.farm.enabled){const p=buildFarmPlan();applyFarmPlan(p,false);}
       toast(`Imported ${imported.length} items into your local workspace.`,'success');go('inventory');

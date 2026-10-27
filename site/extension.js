@@ -20,10 +20,10 @@
     20886954: 'Leg Armor',
     1585787867: 'Class Item',
     3284755031: 'Subclass',
-    4023194814: 'Artifact',
-    284967655: 'Ghost',
-    2025709351: 'Ship',
-    284967655: 'Ghost',
+    1506418338: 'Artifact',
+    4023194814: 'Ghost',
+    2025709351: 'Sparrow',
+    284967655: 'Ship',
     215593132: 'Postmaster'
   };
   const STAT_NAMES = {
@@ -39,7 +39,8 @@
   const GEAR_BUCKETS = ['Kinetic Weapons','Energy Weapons','Power Weapons','Helmet','Gauntlets','Chest Armor','Leg Armor','Class Item'];
   const WEAPON_BUCKETS = ['Kinetic Weapons','Energy Weapons','Power Weapons'];
   const ARMOR_BUCKETS = ['Helmet','Gauntlets','Chest Armor','Leg Armor','Class Item'];
-  const FARM_BUCKETS = GEAR_BUCKETS.concat(['Ghost']);
+  // The manifest determines which character buckets are equippable and transferable,
+  // matching DIM's inventory-driven Farming Mode instead of hard-coding only weapons/armor.
   const WISHLIST_GOOD_URL = 'https://raw.githubusercontent.com/48klocs/dim-wish-list-sources/master/voltron.txt';
   const WISHLIST_CHOOSY_URL = 'https://raw.githubusercontent.com/48klocs/dim-wish-list-sources/master/choosy_voltron.txt';
   const config = readConfig();
@@ -781,7 +782,7 @@
       '<div class="farm-side-stats"><div class="farm-small-card"><label>Safe moves queued</label><strong>'+plan.moves.length+'</strong><small>from '+h(plan.owner)+' to Vault</small></div><div class="farm-small-card"><label>Buckets checked</label><strong>'+plan.rows.length+'</strong><small>eligible gear buckets with items</small></div><div class="farm-small-card"><label>Free vault slots</label><strong>'+fmt(vaultFree())+'</strong><small>of '+VAULT_CAPACITY+' known slots</small></div><div class="farm-small-card"><label>Blocked buckets</label><strong>'+plan.blocked+'</strong><small>no safe item or no Vault room</small></div></div></div>'+
       '<div class="farm-settings"><section class="panel farm-controls"><div class="panel-head"><div><h2>Farm settings</h2><p>Choose the Guardian and empty-space target.</p></div></div><div class="field-stack"><label class="field-label" for="llFarmOwner">Guardian</label><select class="control" id="llFarmOwner" style="width:100%">'+live.characters.map(c=>'<option value="'+h(c.characterId)+'" '+(selected&&String(c.characterId)===String(selected.characterId)?'selected':'')+'>'+h(c.name)+'</option>').join('')+'</select></div><div class="field-stack"><label class="field-label" for="llFarmSpaces">Empty slots to preserve per bucket</label><div class="range-line"><input type="range" id="llFarmSpaces" min="1" max="9" value="'+Math.max(1,Math.min(9,Number(state().farm.spaces||1)))+'"><span class="range-value" id="llFarmSpacesValue">'+Math.max(1,Math.min(9,Number(state().farm.spaces||1)))+'</span></div><div class="field-note">The character gear bucket capacity is '+CHARACTER_BUCKET_CAPACITY+'. Eligible buckets are checked independently; Postmaster is never touched.</div></div><div class="separator"></div><div class="form-tip">Move priority: least valuable candidate first—community wishlist keepers, Exotics, locked items, saved-loadout items, protected tags and 500+ tracked-kill weapons are avoided. If the tracked-kill count is marked but could not be read, the item is left alone.</div></section>'+
       '<section class="panel"><div class="panel-head"><div><h2>Next move plan</h2><p>Every move uses Bungie’s TransferItem endpoint.</p></div><span class="tag">Live preview</span></div>'+
-      (plan.rows.length?plan.rows.map(r=>'<div class="bucket-plan-row"><div class="bucket-plan-name">'+h(r.bucket)+'<small>'+r.count+' of '+CHARACTER_BUCKET_CAPACITY+' used · '+r.free+' currently free</small></div><div class="plan-count">'+(r.item?h(r.item.name):'—')+'<span>'+(r.item?h(r.item.power)+' power':'')+'</span></div><span class="plan-pill '+(r.blocked?'warn':r.item?'move':'clear')+'">'+(r.blocked?'Blocked':r.item?'Move one':'Clear')+'</span></div>').join(''):'<div class="empty-state">No equipped bucket needs to be cleared.</div>')+
+      (plan.rows.length?plan.rows.map(r=>'<div class="bucket-plan-row"><div class="bucket-plan-name">'+h(r.bucket)+'<small>'+r.count+' of '+r.capacity+' used · '+r.free+' currently free</small></div><div class="plan-count">'+(r.item?h(r.item.name):'—')+'<span>'+(r.item?h(r.item.power)+' power':'')+'</span></div><span class="plan-pill '+(r.blocked?'warn':r.item?'move':'clear')+'">'+(r.blocked?'Blocked':r.item?'Move one':'Clear')+'</span></div>').join(''):'<div class="empty-state">No equipped bucket needs to be cleared.</div>')+
       '<div class="separator"></div><div class="ll-small-warning">DIM’s own D2 Farming Mode maintains spare slots in equippable buckets as inventory updates. This version follows that central behavior, but does not yet implement every DIM-specific value heuristic or inventory state edge case.</div></section></div>';
   }
   function buildLiveFarmPlan() {
@@ -790,12 +791,18 @@
     const spaces=Math.max(1,Math.min(9,Number(state().farm.spaces||1)));
     const rows=[],moves=[];
     if(!c)return {owner,rows,moves,blocked:0};
-    FARM_BUCKETS.forEach(bucket=>{
+    const dynamicBuckets=Object.values(live.bucketDefs||{})
+      .filter(b=>Number(b.category)===3&&!!b.hasTransferDestination&&Number(b.scope)===0&&Number(b.hash)!==POSTMASTER_HASH)
+      .map(b=>bucketName(b.hash));
+    const monitoredBuckets=unique(dynamicBuckets.concat(GEAR_BUCKETS));
+    monitoredBuckets.forEach(bucket=>{
       const items=state().items.filter(i=>String(i.characterId||'')===String(c.characterId)&&!i.isPostmaster&&bucketFor(i)===bucket);
       if(!items.length)return;
       const count=items.length;
-      const free=Math.max(0,CHARACTER_BUCKET_CAPACITY-count);
-      const threshold=CHARACTER_BUCKET_CAPACITY-spaces+1;
+      const bucketDefinition=Object.values(live.bucketDefs||{}).find(b=>bucketName(b.hash)===bucket);
+      const capacity=Math.max(1,Number(bucketDefinition&&bucketDefinition.itemCount)||CHARACTER_BUCKET_CAPACITY);
+      const free=Math.max(0,capacity-count);
+      const threshold=capacity-spaces+1;
       let item=null,blocked=false;
       if(count>=threshold) {
         const candidates=items.filter(i=>!i.equipped&&!i.isPostmaster&&normalizeTransferable(i)&&safeToFarm(i)).sort(farmSort);
@@ -804,7 +811,7 @@
         if(item&&vaultFree()>0)moves.push(item);
         else item=null;
       }
-      rows.push({bucket,count,free,item,blocked});
+      rows.push({bucket,count,free,capacity,item,blocked});
     });
     return {owner,rows,moves,blocked:rows.filter(r=>r.blocked).length};
   }

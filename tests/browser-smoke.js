@@ -7,8 +7,9 @@
   const click=selector=>{const el=document.querySelector(selector);if(!el)throw new Error('Missing '+selector);el.click();};
   const set=(selector,value,event='change')=>{const el=document.querySelector(selector);el.value=value;el.dispatchEvent(new Event(event,{bubbles:true}));};
   try {
-    for(const button of document.querySelectorAll('.nav-item')){button.click();assert(!!document.querySelector('h1'),button.dataset.page+' renders');}
+    for(const button of document.querySelectorAll('.nav-item[data-page]')){button.click();assert(!!document.querySelector('h1'),button.dataset.page+' renders');}
     app.go('inventory');
+    set('#groupSelect','location');
     assert(document.querySelector('.inventory-section h2').textContent.includes('Kinetic Weapons'),'slots start with kinetic');
     set('#inventorySearch','perk:"bait and switch" -is:exotic','input');
     assert(document.querySelectorAll('.gear-card').length===3,'quoted perk and negative filters');

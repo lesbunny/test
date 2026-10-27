@@ -66,9 +66,10 @@ The GitHub Pages workflow publishes the `site/` directory and validates the brow
 
 ### Run and validate locally
 
-Requires Python 3 to serve and Node 18+ for tests (verified with Node 24). No package installation or build step is needed.
+Requires Python 3 to serve and Node 18+ for tests (verified with Node 24). The companion works without a build; the integrated DIM engine requires Node 24, Corepack, and its pinned dependency build.
 
 ```sh
+bash scripts/build-dim.sh
 python3 -m http.server 3000 --directory site
 node --check site/app.js
 node --check site/extension.js
@@ -80,6 +81,14 @@ Open `http://localhost:3000`. In a CodeRabbit workspace, register that service b
 
 Source layout: `app.js` owns local workspace/UI behavior, `inventory-core.js` owns deterministic search/sort/planning rules, and `extension.js` owns Bungie integration. Styles are in `app.css`, `extension.css`, and the final `material.css` theme layer.
 
+### DIM engine and companion review tools
+
+The application now builds **DIM 8.148.0** from pinned MIT-licensed source. See [integration documentation](integrations/dim/README.md) and its preserved license. Native inventory, drag-and-drop, item inspection, organizer, search, loadouts, optimizer, socket/mod/subclass tools, vendors, collections, catalysts, progression and wishlist handling use that engine. Public OAuth is shared through the current tab; use Connect Bungie in Little Light. Connected inventory opens the engine automatically. Offline/imported gear uses the character-and-vault board.
+
+Dark Material styling is the default. The menu also includes conservative armor/weapon appraisal, a new-drop inbox, saved-build monitoring, and persistent loot goals, alongside the existing Shard List, farming, compare and bulk workflows. These are independent implementations informed by Shard or Keep's public feature documentation, not its proprietary implementation.
+
 ### Current boundaries
 
-This is an expanded companion, not full DIM or Shard or Keep feature parity. Subclass/mod/socket editing, a complete build optimizer, crafting/collections tracking, vendor/activity planning, cloud synchronization, drag-and-drop transfers, and custom wishlist uploads remain unimplemented. Live OAuth, actual inventory writes, throttling and capacity behavior still require verification with a Bungie Public application and account. Automated tests use synthetic responses and do not establish live-account readiness. The app never dismantles items; dismantling remains in-game.
+Signed-in DIM operations need live-account verification; shipping upstream code does not establish that every feature works with this deployment's Public OAuth scopes. DIM Sync requires a separately registered DIM API key, which this deployment does not provide. DIM's loadouts/tags and companion loadouts/tags are currently separate stores; refresh the companion after engine mutations and explicitly protect companion gear before a Shard List session. Companion safeguards are unchanged. Dismantling remains in-game.
+
+This does not reproduce Shard or Keep's proprietary DestinyGPT, hosted AI loadout generation, shared cloud builds, or its complete Armor 3.0 tuning/dominance model. Appraisal reports observed stats and wishlist matches, not proof that an item is safe to dismantle. The signed-in Shard dashboard could not be inspected without an account.

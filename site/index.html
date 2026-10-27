@@ -27,9 +27,14 @@
         <button class="nav-item active" data-page="dashboard"><span class="nav-icon">◈</span><span>Overview</span></button>
         <button class="nav-item" data-page="inventory"><span class="nav-icon">▦</span><span>Inventory</span><span class="nav-count" id="inventoryNavCount">—</span></button>
         <button class="nav-item" data-page="farming"><span class="nav-icon">♧</span><span>Farming Mode</span><span class="nav-live" id="farmNavDot"></span></button>
+        <button class="nav-item" data-page="bulk"><span class="nav-icon">⚡</span><span>Bulk actions</span></button>
+        <button class="nav-item" data-page="power"><span class="nav-icon">✦</span><span>Max power</span></button>
         <button class="nav-item" data-page="loadouts"><span class="nav-icon">⟐</span><span>Loadouts</span><span class="nav-count" id="loadoutNavCount">0</span></button>
         <button class="nav-item" data-page="compare"><span class="nav-icon">⇄</span><span>Compare</span></button>
         <div class="nav-label nav-label-gap">VAULT</div>
+        <button class="nav-item" data-page="postmaster"><span class="nav-icon">📬</span><span>Postmaster</span><span class="nav-count" id="postmasterNavCount">0</span></button>
+        <button class="nav-item" data-page="shard"><span class="nav-icon">🗑</span><span>Shard List</span><span class="nav-count" id="shardNavCount">0</span></button>
+        <button class="nav-item" data-page="audit"><span class="nav-icon">⌕</span><span>Setup audit</span></button>
         <button class="nav-item" data-page="cleaner"><span class="nav-icon">⌁</span><span>Vault review</span></button>
         <button class="nav-item" data-page="data"><span class="nav-icon">↥</span><span>Import & export</span></button>
       </nav>
@@ -46,6 +51,8 @@
         <div class="breadcrumbs"><span>Little Light</span><span class="crumb-slash">/</span><b id="pageCrumb">Overview</b></div>
         <div class="topbar-actions">
           <div class="source-status"><span class="status-dot"></span><span id="sourceStatus">Sample data</span></div>
+          <select class="control topbar-guardian-picker" id="guardianPicker" aria-label="Selected Guardian" title="Selected Guardian"><option value="">Select Guardian</option></select>
+          <button class="button button-quiet button-small" id="connectBungieButton" data-action="connect-bungie">Connect Bungie</button>
           <button class="button button-quiet button-small" data-action="go-data">Import data</button>
           <button class="icon-button" data-action="help" aria-label="About this app">?</button>
         </div>
@@ -504,8 +511,38 @@
   });
   // Render once, and wire controls that only exist on the active page.
   const originalRenderPage=renderPage;
-  renderPage=function patchedRenderPage(){originalRenderPage();if(page==='farming')bindFarmControls();};
+  renderPage=function patchedRenderPage(){
+    if(window.LittleLightExtension && window.LittleLightExtension.handlesPage(page)){
+      $('#pageContent').innerHTML=window.LittleLightExtension.renderPage(page);
+      syncSidebar();
+      window.LittleLightExtension.afterRender?.(page);
+      return;
+    }
+    originalRenderPage();
+    if(page==='farming')bindFarmControls();
+    window.LittleLightExtension?.afterRender?.(page);
+  };
   renderPage();
+  window.LittleLightApp = {
+    getState:()=>state,
+    replaceState:(next)=>{state=next;persist();},
+    persist:()=>persist(),
+    renderPage:()=>renderPage(),
+    go:(next)=>go(next),
+    getPage:()=>page,
+    setPage:(next)=>go(next),
+    toast:(message,type)=>toast(message,type),
+    saveLog:(message)=>saveLog(message),
+    isProtected:(item)=>isProtected(item),
+    isArmor:(item)=>isArmor(item),
+    isWeapon:(item)=>isWeapon(item),
+    totalStats:(item)=>totalStats(item),
+    normalizeWorkspaceItem:(item,index)=>normalizeWorkspaceItem(item,index||0),
+    escapeHtml:(value)=>escapeHtml(value),
+    ownerNames:()=>ownerNames(),
+    openItem:(id)=>openItem(id),
+    refreshHeader:()=>syncSidebar()
+  };
 })();
 
 </script>

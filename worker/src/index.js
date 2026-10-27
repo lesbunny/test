@@ -82,6 +82,44 @@ function encodeRedirectPayload(value) {
   return b64url(encoder.encode(JSON.stringify(value)));
 }
 
+const OAUTH_STATE_COOKIE = "ll_oauth_state";
+
+function cookieValue(request, name) {
+  const header = request.headers.get("Cookie") || "";
+  for (const part of header.split(";")) {
+    const index = part.indexOf("=");
+    if (index < 0) continue;
+    if (part.slice(0, index).trim() === name) return part.slice(index + 1).trim();
+  }
+  return "";
+}
+
+function oauthStateCookie(value, maxAge = 600) {
+  return OAUTH_STATE_COOKIE + "=" + encodeURIComponent(value) +
+    "; Path=/oauth/callback; Secure; HttpOnly; SameSite=Lax; Max-Age=" + maxAge;
+}
+
+function redirectWithCookie(location, cookie) {
+  const headers = new Headers({
+    Location: location,
+    "Cache-Control": "no-store",
+    "Referrer-Policy": "no-referrer",
+  });
+  if (cookie) headers.append("Set-Cookie", cookie);
+  return new Response(null, { status: 302, headers });
+}
+
+function safeEqual(a, b) {
+  a = String(a || "");
+  b = String(b || "");
+  if (a.length !== b.length) return false;
+  let difference = 0;
+  for (let index = 0; index < a.length; index++) {
+    difference |= a.charCodeAt(index) ^ b.charCodeAt(index);
+  }
+  return difference === 0;
+}
+
 function appendPageHash(returnTo, name, payload) {
   const url = new URL(returnTo);
   url.hash = name + "=" + encodeRedirectPayload(payload);
@@ -177,16 +215,17 @@ async function handleRequest(request, env) {
     if (!env.SITE_URL || returnTo !== env.SITE_URL) {
       return new Response("Rejected OAuth return URL. Configure SITE_URL and use the exact Little Light Pages URL.", { status: 400 });
     }
+    const nonce = crypto.randomUUID();
     const state = await signState({
       returnTo: env.SITE_URL,
       expiresAt: Date.now() + 10 * 60 * 1000,
-      nonce: crypto.randomUUID(),
+      nonce,
     }, env.STATE_SECRET);
     const authorize = new URL("https://www.bungie.net/en/OAuth/Authorize");
     authorize.searchParams.set("client_id", env.BUNGIE_CLIENT_ID);
     authorize.searchParams.set("response_type", "code");
     authorize.searchParams.set("state", state);
-    return Response.redirect(authorize.href, 302);
+    return redirectWithCookie(authorize.href, oauthStateCookie(nonce));
   }
 
   if (path === "/oauth/callback" && method === "GET") {
@@ -195,24 +234,28 @@ async function handleRequest(request, env) {
       const rawState = url.searchParams.get("state");
       state = await readState(rawState, env.STATE_SECRET);
       if (state.returnTo !== env.SITE_URL) throw new Error("OAuth return URL does not match Worker configuration.");
+      const browserNonce = cookieValue(request, OAUTH_STATE_COOKIE);
+      if (!browserNonce || !safeEqual(browserNonce, state.nonce)) {
+        throw new Error("OAuth state did not match the browser that started sign-in. Start Bungie sign-in again.");
+      }
       const oauthError = url.searchParams.get("error");
       if (oauthError) {
-        return Response.redirect(appendPageHash(state.returnTo, "bungie-auth-error", {
+        return redirectWithCookie(appendPageHash(state.returnTo, "bungie-auth-error", {
           error: oauthError,
           description: url.searchParams.get("error_description") || "",
-        }), 302);
+        }), oauthStateCookie("", 0));
       }
       const code = url.searchParams.get("code");
       if (!code) throw new Error("Bungie did not return an authorization code.");
       const data = await exchangeToken({ grant_type: "authorization_code", code }, env);
-      return Response.redirect(appendPageHash(state.returnTo, "bungie-auth", data), 302);
+      return redirectWithCookie(appendPageHash(state.returnTo, "bungie-auth", data), oauthStateCookie("", 0));
     } catch (error) {
       const safeReturn = env.SITE_URL;
       if (safeReturn) {
-        return Response.redirect(appendPageHash(safeReturn, "bungie-auth-error", {
+        return redirectWithCookie(appendPageHash(safeReturn, "bungie-auth-error", {
           error: "oauth_callback_failed",
           description: error instanceof Error ? error.message : "OAuth callback failed.",
-        }), 302);
+        }), oauthStateCookie("", 0));
       }
       return new Response("Little Light OAuth failed. Check the Worker configuration and logs.", { status: 400 });
     }

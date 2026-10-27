@@ -310,14 +310,20 @@
     setStatus('Loading Destiny item definitions…');
     const manifest=await bungieRequest('/Destiny2/Manifest/',{auth:false});
     live.version=String(manifest.version||'');
-    const paths=manifest.jsonWorldComponentContentPaths&&manifest.jsonWorldComponentContentPaths.en
-      ||manifest.jsonWorldContentPaths&&manifest.jsonWorldContentPaths.en;
-    if(!paths||!paths.DestinyInventoryItemDefinition)throw new Error('Bungie’s manifest response did not include the item definitions.');
+    const worldPaths=manifest.jsonWorldContentPaths&&manifest.jsonWorldContentPaths.en||{};
+    const componentPaths=manifest.jsonWorldComponentContentPaths&&manifest.jsonWorldComponentContentPaths.en||{};
+    // Bungie splits full world definitions and lightweight component definitions on some manifest versions.
+    // Merge both maps so choosing the component map cannot hide the full item-definition path.
+    const paths=Object.assign({},worldPaths,componentPaths);
+    const itemDefinitionPath=paths.DestinyInventoryItemDefinition||worldPaths.DestinyInventoryItemDefinition;
+    if(!itemDefinitionPath)throw new Error('Bungie’s manifest response did not include the full item definitions.');
     const base='https://www.bungie.net';
     const makeUrl=p=>/^https?:/i.test(p)?p:new URL(p,base).href;
-    const itemUrl=makeUrl(paths.DestinyInventoryItemDefinition);
-    const statUrl=paths.DestinyStatDefinition?makeUrl(paths.DestinyStatDefinition):null;
-    const bucketUrl=paths.DestinyInventoryBucketDefinition?makeUrl(paths.DestinyInventoryBucketDefinition):null;
+    const itemUrl=makeUrl(itemDefinitionPath);
+    const statPath=paths.DestinyStatDefinition||worldPaths.DestinyStatDefinition;
+    const bucketPath=paths.DestinyInventoryBucketDefinition||worldPaths.DestinyInventoryBucketDefinition;
+    const statUrl=statPath?makeUrl(statPath):null;
+    const bucketUrl=bucketPath?makeUrl(bucketPath):null;
     const results=await Promise.all([
       fetchJsonCached(itemUrl),
       statUrl?fetchJsonCached(statUrl):Promise.resolve({}),

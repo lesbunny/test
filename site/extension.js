@@ -396,11 +396,32 @@
     closeModal();
     await loadLiveProfile();
   }
+  function showInventoryLoading(message) {
+    const modal=document.getElementById('modal');
+    if(!modal)return;
+    modal.innerHTML='<div class="ll-modal-head"><span class="ll-eyebrow">BUNGIE INVENTORY</span></div>'+
+      '<h2 id="modalTitle">Loading your inventory…</h2>'+
+      '<p class="ll-muted">Your Bungie account is connected. The first sync also downloads Destiny item definitions, which can take a little while. Keep this tab open.</p>'+
+      '<div class="ll-security-note"><b id="llLoadStage">'+h(message||'Preparing inventory sync…')+'</b></div>';
+    const scrim=document.getElementById('modalScrim');
+    if(scrim)scrim.hidden=false;
+  }
+  function showInventoryFailure(message) {
+    const modal=document.getElementById('modal');
+    if(!modal)return;
+    modal.innerHTML='<div class="ll-modal-head"><span class="ll-eyebrow">BUNGIE INVENTORY</span><button class="icon-button" data-action="close-modal" aria-label="Close">×</button></div>'+
+      '<h2 id="modalTitle">Inventory could not load</h2><div class="inline-alert warning"><span class="alert-symbol">!</span><div>'+h(message||'Unknown inventory error')+'</div></div>'+
+      '<p class="ll-muted">Your Bungie sign-in is separate from the inventory sync. You can retry with Refresh inventory after closing this message.</p>'+
+      '<div class="ll-modal-actions"><button class="button" data-action="close-modal">Close</button><button class="button" data-action="refresh-bungie">Try again</button></div>';
+    const scrim=document.getElementById('modalScrim');
+    if(scrim)scrim.hidden=false;
+  }
   async function loadLiveProfile() {
     if(!live.membership)throw new Error('No Destiny profile is selected.');
     live.busy=true;
     live.operation='Loading Destiny inventory';
     live.error='';
+    showInventoryLoading('Starting Bungie inventory request…');
     try {
       setStatus('Downloading inventory and item definitions…');
       await loadManifest();
@@ -439,6 +460,7 @@
       live.connected=true;
       live.busy=false;
       live.lastSync=new Date().toISOString();
+      closeModal();
       live.profileDisplayName=(live.membership.displayName||config.profileDisplayName||'Bungie account');
       saveConfig({profileDisplayName:live.profileDisplayName,selectedCharacterId:live.selectedCharacterId});
       LL.persist();
@@ -453,7 +475,7 @@
       setStatus('Bungie sync failed');
       if(/token|sign in|session has expired|OAuth/i.test(live.error))live.connected=false;
       updateHeader();
-      LL.toast('Bungie sync failed: '+live.error,'error');
+      showInventoryFailure(live.error);
       throw err;
     }
   }
@@ -576,6 +598,8 @@
   function setStatus(text) {
     const el=document.getElementById('sourceStatus');
     if(el)el.textContent=text;
+    const stage=document.getElementById('llLoadStage');
+    if(stage)stage.textContent=text;
     updateHeader();
   }
   function updateHeader() {

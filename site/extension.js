@@ -966,6 +966,10 @@
     live.profile=await bungieRequest(path);
     const charactersData=live.profile&&live.profile.characters&&live.profile.characters.data||{};
     live.characters=distinguishCharacterNames(Object.entries(charactersData).map(([id,c],i)=>({characterId:String(id),classType:Number(c.classType),name:CLASS_NAMES[Number(c.classType)]||('Guardian '+(i+1)),light:Number(c.light||0),emblemPath:c.emblemPath||''})).sort((a,b)=>a.classType-b.classType));
+    if(!live.characters.some(c=>String(c.characterId)===String(live.selectedCharacterId))) {
+      live.selectedCharacterId=live.characters[0]?String(live.characters[0].characterId):'';
+      saveConfig({selectedCharacterId:live.selectedCharacterId});
+    }
     live.savedLoadoutIds=extractSavedLoadoutIds(live.profile);
     const items=buildLiveItems(live.profile);
     const old=state().items||[],oldById=new Map(old.map(i=>[String(i.id),i]));

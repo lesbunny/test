@@ -84,7 +84,7 @@
     const duplicateCounts=new Map();
     const identity=i=>i.itemHash||i.name;
     for(const item of state().items)duplicateCounts.set(identity(item),(duplicateCounts.get(identity(item))||0)+1);
-    return sorted(items.filter(item => (owner==='all'||item.owner===owner) && (rating==='all'||(rating==='protected'?(app.isProtected(item)||assessment(item).kind==='good'):assessment(item).kind===rating)) && core.matches(item,query,{protected:app.isProtected,duplicate:i=>(duplicateCounts.get(identity(i))||0)>1})));
+    return sorted(items.filter(item => (owner==='all'||item.owner===owner) && (rating==='all'||(rating==='protected'?(app.isProtected(item)||assessment(item).kind==='good'):assessment(item).kind===rating)) && core.matches(item,query,{custom:i=>window.NativeCore.customTotal(i,state().preferences.customStats||{}),loadout:i=>state().loadouts.some(l=>(l.itemIds||[]).includes(i.id)),wishlist:i=>window.LittleLightExtension?.assessRoll(i).status==='good',protected:app.isProtected,duplicate:i=>(duplicateCounts.get(identity(i))||0)>1})));
   }
   function header(title, subtitle='', actions='') {
     return `<div class="workspace-heading"><div><h1>${escape(title)}</h1>${subtitle?`<p>${escape(subtitle)}</p>`:''}</div><div class="workspace-heading-actions">${actions}</div></div>`;
@@ -152,7 +152,7 @@
     ['', [['dashboard','Dashboard','dashboard'],['drops','New drops','drops']]],
     ['Builds & planning',[['loadouts','My loadouts','loadouts'],['gamebuilds','In-game loadouts','loadouts'],['sockets','Sockets & mods','settings'],['optimizer','Loadout optimizer','sparkle']]],
     ['Gear',[['equipped','Equipped','equipped'],['vault','Vault','vault'],['postmaster','Postmaster','postmaster'],['weapons','Weapons','weapons'],['armor','Armor','armor'],['shard','Shard List','shard'],['compare','Compare','compare'],['power','Maximum power','power'],['search','Search','search'],['bulk','Bulk actions','bulk']]],
-    ['Discover',[['builder','Armor builder','armor'],['watch','Build watcher','search'],['goals','Loot goals','sparkle'],['appraisal','Appraisal','sparkle'],['cleaner','Vault review','vault'],['vendors','Vendors','vault'],['collections','Collections & catalysts','book'],['progress','Progress & triumphs','power'],['feed','Item feed','drops']]],
+    ['Discover',[['builder','Armor builder','armor'],['watch','Build watcher','search'],['goals','Loot goals','sparkle'],['appraisal','Appraisal','sparkle'],['cleaner','Vault review','vault'],['vendors','Vendors','vault'],['collections','Collections & catalysts','book'],['records','Records & seals','book'],['progress','Progress & triumphs','power'],['feed','Item feed','drops']]],
     ['Tools',[['inventory','Inventory board','dashboard'],['organizer','Organizer','bulk'],['farming','Farming mode','farm'],['data','Import & export','drops'],['audit','Setup audit','search'],['settings','Settings','settings'],['armory','Armory','book'],['activities','Activities','book'],['wishlist','Wishlists','sparkle'],['help','Help & shortcuts','book']]]
   ];
   const countIds={inventory:'inventoryNavCount',loadouts:'loadoutNavCount',postmaster:'postmasterNavCount',shard:'shardNavCount'};

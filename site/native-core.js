@@ -26,5 +26,28 @@ function optimize(items,{classType=1,weights={},minimum={},maximum={},pinned=[],
  for(const i of pools[n]){if(exotics+!!i.exotic>1)continue;const next={...stats};for(const k of core.stats)next[k]=(next[k]||0)+(Number(i.stats?.[k])||0);walk(n+1,[...chosen,i],next,exotics+!!i.exotic);if(truncated)break;}};
  walk(0,[],{},0);return {sets,missing,visited,truncated};
 }
-const api={parseCSV,annotationChanges,csv,optimize};if(typeof module==='object')module.exports=api;else root.NativeCore=api;
+function wishlistURL(value){
+ const url=new URL(value);
+ if(url.protocol!=='https:'||url.username||url.password||url.port||url.search||url.hash)throw Error('Use an HTTPS GitHub file URL without credentials, query, or fragment.');
+ if(url.hostname==='github.com'){
+  const parts=url.pathname.split('/');if(parts.length<6||parts[3]!=='blob')throw Error('Choose a GitHub file, not a repository or folder.');
+  url.hostname='raw.githubusercontent.com';url.pathname=[...parts.slice(0,3),...parts.slice(4)].join('/');
+ }
+ if(url.hostname!=='raw.githubusercontent.com'||url.pathname.split('/').filter(Boolean).length<4)throw Error('Only GitHub-hosted raw wishlist files are supported.');
+ return url.href;
+}
+function repairCandidates(snapshot,items,used=[]){
+ if(!snapshot)return [];
+ return items.filter(i=>!used.includes(i.id)&&!i.isPostmaster&&!(i.tags||[]).includes('junk')&&(i.gearBucket||i.bucket)===(snapshot.gearBucket||snapshot.bucket)&&(snapshot.classType==null||i.classType==null||Number(i.classType)===3||Number(i.classType)===Number(snapshot.classType))).map(item=>{
+ const same=!!snapshot.itemHash&&String(snapshot.itemHash)===String(item.itemHash);
+ const wanted=new Set((snapshot.perks||[]).map(p=>p.toLowerCase()));
+ const overlap=(item.perks||[]).filter(p=>wanted.has(p.toLowerCase())).length;
+ return {item,same,overlap};
+ }).sort((a,b)=>Number(b.same)-Number(a.same)||b.overlap-a.overlap||Number(b.item.power||0)-Number(a.item.power||0)||String(a.item.id).localeCompare(String(b.item.id)));
+}
+function customTotal(item,preferences={}){
+ const keys=preferences[String(item.classType??3)]||[];
+ return keys.reduce((sum,key)=>sum+(Number(item.stats?.[key])||0),0);
+}
+const api={parseCSV,annotationChanges,csv,optimize,wishlistURL,repairCandidates,customTotal};if(typeof module==='object')module.exports=api;else root.NativeCore=api;
 })(typeof window==='object'?window:globalThis);

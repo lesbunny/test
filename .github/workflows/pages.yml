@@ -35,6 +35,7 @@ jobs:
           node --check site/native-tools.js
           node --check site/tools.js
           node --check site/workspace-ui.js
+          node --check site/workspace-qol.js
           node --test tests/*.test.cjs
           node --input-type=commonjs -e 'const fs=require("node:fs"),vm=require("node:vm"),html=fs.readFileSync("site/index.html","utf8");const scripts=[...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(s=>s.trim());scripts.forEach((s,i)=>new vm.Script(s,{filename:"inline-app-"+i+".js"}));console.log("Validated "+scripts.length+" inline script(s).");'
       - name: Configure GitHub Pages

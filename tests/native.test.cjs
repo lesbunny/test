@@ -23,3 +23,19 @@ test('optimizer enforces min/max, pins, class, junk and exotic limits',()=>{
 test('deployment and native tool code contain no embedded application',()=>{
  const fs=require('node:fs');for(const f of ['site/tools.js','site/native-tools.js','site/workspace-ui.js','site/index.html','.github/workflows/pages.yml'])assert.doesNotMatch(fs.readFileSync(f,'utf8'),/<iframe|build-dim|engine\/#|Native DIM/);
 });
+test('wishlist subscriptions accept only HTTPS GitHub files',()=>{
+ assert.equal(native.wishlistURL('https://github.com/owner/repo/blob/main/list.txt'),'https://raw.githubusercontent.com/owner/repo/main/list.txt');
+ assert.equal(native.wishlistURL('https://raw.githubusercontent.com/o/r/main/list.txt'),'https://raw.githubusercontent.com/o/r/main/list.txt');
+ for(const url of ['http://raw.githubusercontent.com/o/r/main/x','https://evil.test/o/r/main/x','https://github.com/o/r','https://user:password@github.com/o/r/blob/main/x','https://raw.githubusercontent.com/o/r/main/x?token=secret'])assert.throws(()=>native.wishlistURL(url));
+});
+test('missing build repair prioritizes exact definitions and excludes used, wrong-class, junk and postmaster gear',()=>{
+ const snapshot={bucket:'Helmet',itemHash:'123',classType:1,perks:['Keep perk']};
+ const items=[{id:'exact',bucket:'Helmet',itemHash:'123',classType:1,power:1,perks:[]},{id:'similar',bucket:'Helmet',classType:1,power:200,perks:['Keep perk']},{id:'wrong',bucket:'Helmet',classType:0},{id:'junk',bucket:'Helmet',classType:1,tags:['junk']},{id:'post',bucket:'Helmet',classType:1,isPostmaster:true}];
+ assert.deepEqual(native.repairCandidates(snapshot,items).map(c=>c.item.id),['exact','similar']);assert.deepEqual(native.repairCandidates(snapshot,items,['exact']).map(c=>c.item.id),['similar']);assert.deepEqual(native.repairCandidates(null,items),[]);
+});
+test('stat arithmetic and class custom totals do not invent missing values',()=>{
+ const item={classType:1,stats:{Resilience:20,Recovery:10}};
+ assert.equal(core.statValue(item,'resilience+recovery'),30);assert.equal(core.statValue(item,'resilience+recovery/2'),15);assert.equal(core.statValue(item,'resilience+missing'),undefined);assert.equal(core.statValue(item,'resilience/0'),undefined);
+ assert.equal(core.matches(item,'stat:resilience+recovery:>=30'),true);assert.equal(core.matches(item,'stat.resilience+recovery/2:15'),true);assert.equal(core.matches(item,'stat.missing:0'),false);
+ assert.equal(native.customTotal(item,{'1':['Recovery'],'0':['Resilience']}),10);assert.equal(core.matches(item,'custom:>=10',{custom:i=>native.customTotal(i,{'1':['Recovery']})}),true);
+});

@@ -104,3 +104,9 @@ Live mutations retain preview, pacing, capacity checks, and per-item reporting. 
 The default dashboard and Equipped, Vault, Weapons, Armor, and Search views use a persistent sidebar, a global search header, compact appraisal cards, and dark Material surfaces. Equipped separates worn gear from carried alternatives in each equipment slot. Each Guardian's Save as loadout button opens the existing save dialog with that Guardian selected.
 
 Dashboard counts use the current inventory; its recent-drop panel uses observed timestamps and clearly labels the sample inventory. Wishlist badges require an exact community match. Keep means local protection, and Unrated means no decision has been established. Global search supports the companion query syntax and the `/` shortcut. Every menu destination belongs to Little Light.
+
+### Organization and planning additions
+
+Organizer now has per-category columns, per-class custom stat totals, and Shift-click cell filters. Global search includes recent queries, named favorites, filter suggestions, and stat arithmetic (`stat.resilience+recovery:>=40`, `stat.resilience+recovery/2:>=20`). The Inventory board offers single-character mode.
+
+Loadouts support text/hashtag search, sorting, and missing-item repair with explicit draft/save steps. GitHub wishlist subscriptions and inspector perk-gap panels share the existing keeper-protection matcher. Activities have a local To play checklist; Records & seals browses Bungie's real presentation hierarchy. Personal checklist completion does not establish in-game clears. See the coverage document for remaining parity.

@@ -1052,10 +1052,11 @@
   function prepareMaxPower() {
     if(!needConnection())return;
     const plan=buildMaxPowerPlan();
-    const picks=plan.rows.filter(r=>r.item);
-    if(!picks.length){LL.toast('No eligible gear was found for the selected Guardian.');return;}
+    const char=getSelectedCharacter();
+    const picks=plan.rows.filter(r=>r.item&&!(char&&r.item.equipped&&String(r.item.characterId)===String(char.characterId)));
+    if(!picks.length){LL.toast('Your selected Guardian already has the highest-power eligible item equipped in every available slot.','success');return;}
     const text=picks.map(r=>r.bucket+': '+r.item.name+' ('+r.item.power+')'+(r.current?' vs '+r.current:'')).join('; ');
-    openConfirm('Equip maximum-power set','Equip up to '+picks.length+' highest-power item(s) on '+getSelectedCharacterName()+'. '+text+'. The app may move unequipped gear through the Vault as required; it will not touch an item equipped on another Guardian.',{type:'max-power',ids:picks.map(r=>r.item.id)},'Equip set');
+    openConfirm('Equip maximum-power set','Equip up to '+picks.length+' highest-power item(s) on '+getSelectedCharacterName()+'. '+text+'. Items already equipped in their selected slots are skipped. The app may move unequipped gear through the Vault as required; it will not touch an item equipped on another Guardian.',{type:'max-power',ids:picks.map(r=>r.item.id)},'Equip set');
   }
   async function executeMaxPower(payload) {
     const char=getSelectedCharacter();
@@ -1204,7 +1205,13 @@
       const hash=String(m[1]);
       const perksM=line.match(/[?&]perks=([0-9,]+)/i);
       const perks=perksM?perksM[1].split(',').filter(Boolean).map(String):[];
-      const rec={perks,notes:notes||title||'',source:kind};
+      let inlineNotes='';
+      const notesMatch=line.match(/#notes:([^#]*)/i);
+      if(notesMatch) {
+        inlineNotes=notesMatch[1].trim();
+        try { inlineNotes=decodeURIComponent(inlineNotes.replace(/\\+/g,' ')); } catch (_) {}
+      }
+      const rec={perks,notes:inlineNotes||notes||title||'',source:kind};
       if(!map.has(hash))map.set(hash,[]);
       map.get(hash).push(rec);
       count++;

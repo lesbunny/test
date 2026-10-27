@@ -143,8 +143,11 @@
   function vaultCount() { return state().items.filter(i=>i.owner==='Vault'&&!i.isPostmaster).length; }
   function vaultFree() { return Math.max(0,VAULT_CAPACITY-vaultCount()); }
   function characterBucketItems(characterId,bucket) {
-    const c=live.characters.find(x=>String(x.characterId)===String(characterId));
     return state().items.filter(i=>String(i.characterId||'')===String(characterId)&&!i.isPostmaster&&bucketFor(i)===bucket);
+  }
+  function bucketCapacity(bucket) {
+    const def=Object.values(live.bucketDefs||{}).find(b=>Number(b.category)===3&&bucketName(b.hash)===bucket);
+    return Math.max(1,Number(def&&def.itemCount)||CHARACTER_BUCKET_CAPACITY);
   }
   function equippedItem(characterId,bucket) {
     return state().items.find(i=>String(i.characterId||'')===String(characterId)&&i.equipped&&!i.isPostmaster&&bucketFor(i)===bucket);
@@ -642,20 +645,22 @@
   function renderBulk() {
     const move=bulkMovePlan();
     const shards=(state().shardList||[]).map(shardItemById).filter(Boolean);
-    const stageable=shards.filter(i=>safeToStage(i).ok);
+    const shardPrep=buildShardPrepPreview();
+    const safeShardItems=shardPrep.ready;
+    const stageable=shardPrep.stage;
     const f=buildFuelPlan();
     const active=getSelectedCharacterName();
     return renderHeading('BULK INVENTORY TOOLS','Bulk actions','Move gear safely, prepare a dismantling session, or stage infusion fuel. Each action previews its scope before it changes live inventory.',
       btn('load-rolls',live.rollStatus==='ready'?'✓ Roll data loaded':'Load community rolls',live.rollStatus==='loading','button-quiet button-small')+' '+btn('refresh-bungie','↻ Refresh inventory',!isConnected(),'button-quiet button-small'))+
       connectionNotice()+
-      '<div class="stat-grid"><div class="stat-card"><div class="stat-label">Vault slots free</div><div class="stat-value">'+fmt(vaultFree())+'</div><div class="stat-foot">'+fmt(vaultCount())+' of '+fmt(VAULT_CAPACITY)+' used · verify in game</div></div><div class="stat-card"><div class="stat-label">Move-to-vault candidates</div><div class="stat-value">'+fmt(move.total)+'</div><div class="stat-foot">Unequipped weapons and armor on characters</div></div><div class="stat-card"><div class="stat-label">Confirmed shard list</div><div class="stat-value">'+fmt(shards.length)+'</div><div class="stat-foot">'+fmt(stageable.length)+' currently pass staging checks</div></div><div class="stat-card"><div class="stat-label">Infusion fuel</div><div class="stat-value">'+fmt(f.total)+'</div><div class="stat-foot">Vault items above your equipped power</div></div></div>'+
+      '<div class="stat-grid"><div class="stat-card"><div class="stat-label">Vault slots free</div><div class="stat-value">'+fmt(vaultFree())+'</div><div class="stat-foot">'+fmt(vaultCount())+' of '+fmt(VAULT_CAPACITY)+' used · verify in game</div></div><div class="stat-card"><div class="stat-label">Move-to-vault candidates</div><div class="stat-value">'+fmt(move.total)+'</div><div class="stat-foot">Unequipped weapons and armor on characters</div></div><div class="stat-card"><div class="stat-label">Confirmed shard list</div><div class="stat-value">'+fmt(shards.length)+'</div><div class="stat-foot">'+fmt(safeShardItems.length)+' safe · '+fmt(stageable.length)+' to stage after clearing</div></div><div class="stat-card"><div class="stat-label">Infusion fuel</div><div class="stat-value">'+fmt(f.total)+'</div><div class="stat-foot">Vault items above your equipped power</div></div></div>'+
       '<div class="ll-action-grid">'+
         '<section class="panel ll-action-card"><div class="ll-action-icon">🏦</div><div class="eyebrow">INVENTORY MOVE</div><h2>Move everything to the Vault</h2><p>Moves every transferable, unequipped weapon and armor piece off your characters into the Vault. Equipped gear and Postmaster items stay where they are. Locked items can be moved but never dismantled here.</p><div class="ll-action-summary"><b>'+fmt(Math.min(move.total,move.free))+' items</b><span>'+fmt(move.free)+' vault slots free</span></div>'+
           (move.blocked?'<div class="ll-small-warning">'+fmt(move.blocked)+' items do not fit in the available Vault space and will be left on their characters.</div>':'')+
           btn('bulk-move-vault','Move '+fmt(Math.min(move.total,move.free))+' items to the Vault',!isConnected()||move.total===0||move.free===0,'ll-action-button')+'</section>'+
-        '<section class="panel ll-action-card"><div class="ll-action-icon">🗑️</div><div class="eyebrow">SHARD SESSION PREP</div><h2>Prep a dismantling session</h2><p>Moves unequipped character weapons and armor into the Vault while leaving equipped gear, Postmaster items, and confirmed Shard List items alone. Then it stages as many safe, confirmed items as fit on your selected Guardian ('+h(active)+').</p><div class="ll-action-summary"><b>'+fmt(stageable.length)+' safe items</b><span>'+fmt(shards.length-stageable.length)+' blocked or stale</span></div>'+
+        '<section class="panel ll-action-card"><div class="ll-action-icon">🗑️</div><div class="eyebrow">SHARD SESSION PREP</div><h2>Prep a dismantling session</h2><p>Moves unequipped character weapons and armor into the Vault while leaving equipped gear, Postmaster items, and confirmed Shard List items alone. Then it stages as many safe, confirmed items as fit on your selected Guardian ('+h(active)+').</p><div class="ll-action-summary"><b>'+fmt(stageable.length)+' to stage</b><span>'+fmt(shardPrep.alreadyOnTarget.length)+' already staged · '+fmt(shardPrep.notFit)+' won’t fit</span></div>'+
           '<div class="ll-small-warning">Locked gear, Exotics, wishlist keepers, protected loadout items, high-stat armor, and any weapon with 500+ or unverifiable tracked kills are never staged. Dismantling stays in-game.</div>'+
-          (stageable.length?btn('prep-shard-session','Prepare '+fmt(stageable.length)+' items',!isConnected(),'ll-action-button'):'<div class="ll-small-warning">No confirmed junk to stage. Confirm items on the Shard List first.</div>'+btn('go-shard','Review Shard List',false,'button-quiet ll-action-button'))+'</section>'+
+          (safeShardItems.length?btn('prep-shard-session','Prepare session · '+fmt(stageable.length)+' to stage',!isConnected(),'ll-action-button'):'<div class="ll-small-warning">No confirmed junk to stage. Confirm items on the Shard List first.</div>'+btn('go-shard','Review Shard List',false,'button-quiet ll-action-button'))+'</section>'+
         '<section class="panel ll-action-card"><div class="ll-action-icon">⚡</div><div class="eyebrow">POWER MANAGEMENT</div><h2>Stage infusion fuel</h2><p>Chooses up to two highest-power, safely burnable Vault pieces per weapon/armor slot—but only if each piece beats the selected Guardian’s equipped power. Low-power items are never staged.</p><div class="ll-action-summary"><b>'+fmt(f.total)+' fuel pieces</b><span>'+fmt(f.rows.filter(r=>r.count).length)+' slots with upgrades</span></div>'+
           '<div class="ll-small-warning">Exotics, locks, wishlist rolls, loadout-protected gear, high-stat armor and tracked-kill weapons are excluded. Check each row before moving the fuel.</div>'+
           btn('stage-infusion-fuel','Stage '+fmt(f.total)+' fuel pieces',!isConnected()||f.total===0,'ll-action-button')+'</section>'+
@@ -1045,41 +1050,71 @@
       live.busy=false;updateHeader();LL.renderPage();
     }
   }
+  function buildShardPrepPreview() {
+    const target=getSelectedCharacter();
+    const queue=(state().shardList||[]).map(getItem).filter(Boolean);
+    const ready=queue.filter(i=>safeToStage(i).ok);
+    if(!target)return {target:null,queue,ready,clear:[],stage:[],alreadyOnTarget:[],notFit:ready.length,transitNeeded:false};
+    const targetId=String(target.characterId);
+    const clearCandidates=state().items.filter(i=>i.isLiveItem&&i.owner!=='Vault'&&!i.equipped&&!i.isPostmaster&&isGear(i)&&normalizeTransferable(i)&&!isJunkListed(i));
+    const transitNeeded=ready.some(i=>i.owner!=='Vault'&&String(i.characterId||'')!==targetId&&!i.isPostmaster);
+    const reserve=transitNeeded?1:0;
+    const clear=clearCandidates.slice(0,Math.max(0,vaultFree()-reserve));
+    const clearIds=new Set(clear.map(i=>String(i.id)));
+    const counts={};
+    GEAR_BUCKETS.forEach(bucket=>{
+      counts[bucket]=state().items.filter(i=>String(i.characterId||'')===targetId&&!i.isPostmaster&&bucketFor(i)===bucket&&!clearIds.has(String(i.id))).length;
+    });
+    const freeAfterClear=Math.max(0,vaultFree()-clear.length);
+    const stage=[],alreadyOnTarget=[];
+    const sorted=ready.slice().sort((a,b)=>String(a.owner===target.name?0:a.owner==='Vault'?1:2).localeCompare(String(b.owner===target.name?0:b.owner==='Vault'?1:2)));
+    for(const item of sorted) {
+      const bucket=bucketFor(item);
+      if(!GEAR_BUCKETS.includes(bucket))continue;
+      if(item.owner===target.name&&String(item.characterId||'')===targetId){alreadyOnTarget.push(item);continue;}
+      if((counts[bucket]||0)>=bucketCapacity(bucket))continue;
+      if(item.owner==='Vault') {
+        stage.push({item,source:'Vault'});
+        counts[bucket]++;
+      } else if(!item.isPostmaster&&String(item.characterId||'')!==targetId&&freeAfterClear>0) {
+        // The same free Vault slot is reusable for each sequential character-to-vault-to-target transfer.
+        stage.push({item,source:'Other'});
+        counts[bucket]++;
+      }
+    }
+    const stagedIds=new Set(stage.map(x=>String(x.item.id)));
+    const onTargetIds=new Set(alreadyOnTarget.map(i=>String(i.id)));
+    const notFit=ready.filter(i=>!stagedIds.has(String(i.id))&&!onTargetIds.has(String(i.id))).length;
+    return {target,queue,ready,clear,stage,alreadyOnTarget,notFit,transitNeeded,freeAfterClear};
+  }
   function prepareShardSession() {
     if(!needConnection())return;
-    const s=state();
-    const selected=getSelectedCharacter();
+    const plan=buildShardPrepPreview();
+    const selected=plan.target;
     if(!selected){LL.toast('Select a Guardian first.','error');return;}
-    const queue=(s.shardList||[]).map(getItem).filter(Boolean);
-    const ready=queue.filter(i=>safeToStage(i).ok);
-    const oldCandidates=s.items.filter(i=>i.isLiveItem&&i.owner!=='Vault'&&!i.equipped&&!i.isPostmaster&&isGear(i)&&normalizeTransferable(i)&&!isJunkListed(i));
-    const reserve=queue.filter(i=>i.owner!=='Vault'&&i.owner!==selected.name&&safeToStage(i).ok).length;
-    const clear=oldCandidates.slice(0,Math.max(0,vaultFree()-reserve));
-    const capacity=queue.reduce((n,i)=>n+(safeToStage(i).ok?1:0),0);
-    const description='First move '+clear.length+' unequipped non-junk weapon/armor pieces to the Vault. Then stage up to '+ready.length+' manually confirmed, safe Shard List items on '+selected.name+'. The app will leave equipped gear and all Postmaster items alone. Items that do not fit or fail a safety check stay where they are.';
-    openConfirm('Prep a dismantling session',description,{type:'prep-shard',clearIds:clear.map(i=>i.id),targetId:selected.characterId},'Prepare shard session');
+    const description='First move '+plan.clear.length+' unequipped non-junk weapon/armor pieces to the Vault. Then stage '+plan.stage.length+' manually confirmed items on '+selected.name+'. '+plan.alreadyOnTarget.length+' confirmed item(s) are already on this Guardian; '+plan.notFit+' safe item(s) will stay where they are because of bucket capacity or transfer restrictions. Equipped gear, Postmaster items and confirmed junk are left alone during the clearing step.';
+    openConfirm('Prep a dismantling session',description,{type:'prep-shard',clearIds:plan.clear.map(i=>i.id),targetId:selected.characterId},'Prepare shard session');
   }
   async function executePrepShard(payload) {
     const clear=(payload.clearIds||[]).map(getItem).filter(i=>i&&i.owner!=='Vault'&&!i.equipped&&!i.isPostmaster&&!isJunkListed(i)&&isGear(i)&&normalizeTransferable(i));
     const targetId=String(payload.targetId||'');
     const target=live.characters.find(c=>String(c.characterId)===targetId);
     if(!target)throw new Error('Selected Guardian no longer exists in the live profile.');
-    const sourceShardIds=(state().shardList||[]).map(String);
     const toMove=clear.slice(0,vaultFree());
     await executeSequential('Clearing characters to Vault',toMove,async item=>{await moveToVault(item);item.owner='Vault';item.characterId='';},false);
     await refreshProfileOnly();
     const queue=(state().shardList||[]).map(getItem).filter(Boolean);
     const countsByBucket={};
     GEAR_BUCKETS.forEach(b=>countsByBucket[b]=characterBucketItems(targetId,b).length);
-    let free=vaultFree();
+    const hasTransitSpace=vaultFree()>0;
     const stage=[];
     const sorted=queue.filter(i=>safeToStage(i).ok).sort((a,b)=>String(a.owner===target.name?0:a.owner==='Vault'?1:2).localeCompare(String(b.owner===target.name?0:b.owner==='Vault'?1:2)));
     for(const item of sorted) {
       const bucket=bucketFor(item);
-      if(!GEAR_BUCKETS.includes(bucket)||countsByBucket[bucket]>=CHARACTER_BUCKET_CAPACITY)continue;
+      if(!GEAR_BUCKETS.includes(bucket)||(countsByBucket[bucket]||0)>=bucketCapacity(bucket))continue;
       if(item.owner==='Vault'){stage.push({item,source:'Vault'});countsByBucket[bucket]++;}
-      else if(item.owner===target.name&&String(item.characterId)===targetId){countsByBucket[bucket]++;}
-      else if(item.owner!==target.name&&free>0&&!item.equipped&&!item.isPostmaster){stage.push({item,source:'Other'});countsByBucket[bucket]++;free--;}
+      else if(item.owner===target.name&&String(item.characterId)===targetId){/* already staged on this Guardian */}
+      else if(item.owner!==target.name&&hasTransitSpace&&!item.equipped&&!item.isPostmaster){stage.push({item,source:'Other'});countsByBucket[bucket]++;}
     }
     live.busy=true;live.operation='Staging confirmed shard items';updateHeader();LL.renderPage();
     try {

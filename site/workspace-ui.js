@@ -11,6 +11,7 @@
   let owner = 'all';
   let order = 'power';
   let rating = 'all';
+  let displayLimit=120,viewIdentity='';
 
   const paths = {
     dashboard:'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
@@ -133,25 +134,26 @@
     if (page==='vault') items=items.filter(i=>i.owner==='Vault');
     if (page==='weapons') items=items.filter(app.isWeapon);
     if (page==='armor') items=items.filter(app.isArmor);
-    const results=matching(items);
+    const identity=[page,query,owner,order,rating].join('|');if(identity!==viewIdentity){viewIdentity=identity;displayLimit=120;}
+    const allResults=matching(items),results=allResults.slice(0,displayLimit);
     const descriptions={vault:'Everything tucked away for your next adventure.',weapons:'Find your favorite rolls. Make room for the next one.',armor:'Every piece, every distribution. Build around what matters to you.',search:'Search names, perks, tags, stats, and more.'};
     const slots=[...new Set(results.map(i=>i.bucket))].sort(core.slotCompare);
-    return header(titles[page],descriptions[page],page==='search'?pageLink('inventory','Advanced inventory →','button button-outline'):'')+controls(page,results.length)+
+    return header(titles[page],descriptions[page],page==='search'?pageLink('inventory','Advanced inventory →','button button-outline'):'')+controls(page,allResults.length)+
       (page==='search'?`<details class="workspace-search-help"><summary>Search examples</summary><p><code>is:weapon -is:locked</code> · <code>perk:"bait and switch"</code> · <code>stat.resilience:&gt;=20</code> · <code>is:duplicate</code></p></details>`:'')+
-      (results.length?(page==='search'?`<section class="workspace-panel"><div class="loot-grid">${results.map(i=>card(i)).join('')}</div></section>`:slots.map(slot=>`<section class="workspace-panel gear-slot-panel"><div class="workspace-panel-heading"><h2>${escape(slot)} <span>${results.filter(i=>i.bucket===slot).length} items</span></h2></div><div class="loot-grid">${results.filter(i=>i.bucket===slot).map(i=>card(i)).join('')}</div></section>`).join('')):empty('Try another search or clear a filter.'));
+      (results.length?(page==='search'?`<section class="workspace-panel"><div class="loot-grid">${results.map(i=>card(i)).join('')}</div></section>`:slots.map(slot=>`<section class="workspace-panel gear-slot-panel"><div class="workspace-panel-heading"><h2>${escape(slot)} <span>${results.filter(i=>i.bucket===slot).length} items</span></h2></div><div class="loot-grid">${results.filter(i=>i.bucket===slot).map(i=>card(i)).join('')}</div></section>`).join('')):empty('Try another search or clear a filter.'))+(allResults.length>displayLimit?`<div class="native-pagination"><button class="button" data-workspace-more>Show next 120 · ${allResults.length-displayLimit} remaining</button></div>`:'');
   }
   const originalHandles=tools.handlesPage;
   const originalRender=tools.renderPage;
   tools.handlesPage=page=>viewPages.has(page)||originalHandles(page);
   tools.renderPage=page=>page==='dashboard'?dashboard():page==='equipped'?equipped():viewPages.has(page)?gearView(page):originalRender(page);
 
-  // Build a single navigation tree for companion workflows and native DIM screens.
+  // Build a single navigation tree for Little Light workflows.
   const groups=[
     ['', [['dashboard','Dashboard','dashboard'],['drops','New drops','drops']]],
-    ['Builds & planning',[['loadouts','My loadouts','loadouts'],['optimizer','Loadout optimizer','sparkle']]],
+    ['Builds & planning',[['loadouts','My loadouts','loadouts'],['gamebuilds','In-game loadouts','loadouts'],['sockets','Sockets & mods','settings'],['optimizer','Loadout optimizer','sparkle']]],
     ['Gear',[['equipped','Equipped','equipped'],['vault','Vault','vault'],['postmaster','Postmaster','postmaster'],['weapons','Weapons','weapons'],['armor','Armor','armor'],['shard','Shard List','shard'],['compare','Compare','compare'],['power','Maximum power','power'],['search','Search','search'],['bulk','Bulk actions','bulk']]],
     ['Discover',[['builder','Armor builder','armor'],['watch','Build watcher','search'],['goals','Loot goals','sparkle'],['appraisal','Appraisal','sparkle'],['cleaner','Vault review','vault'],['vendors','Vendors','vault'],['collections','Collections & catalysts','book'],['progress','Progress & triumphs','power'],['feed','Item feed','drops']]],
-    ['Tools',[['dimloadouts','DIM loadouts','loadouts'],['inventory','Inventory board','dashboard'],['dim','Native DIM','dashboard'],['organizer','Organizer','bulk'],['farming','Farming mode','farm'],['data','Import & export','drops'],['audit','Setup audit','search'],['settings','DIM settings','settings']]]
+    ['Tools',[['inventory','Inventory board','dashboard'],['organizer','Organizer','bulk'],['farming','Farming mode','farm'],['data','Import & export','drops'],['audit','Setup audit','search'],['settings','Settings','settings'],['armory','Armory','book'],['activities','Activities','book'],['wishlist','Wishlists','sparkle'],['help','Help & shortcuts','book']]]
   ];
   const countIds={inventory:'inventoryNavCount',loadouts:'loadoutNavCount',postmaster:'postmasterNavCount',shard:'shardNavCount'};
   const legacy = new Set(['dashboard','inventory','loadouts','builder','postmaster','shard','compare','power','bulk','cleaner','farming','data','audit']);
@@ -166,6 +168,7 @@
     app.go(page);
   }
   document.addEventListener('click',event=>{
+    if(event.target.closest('[data-workspace-more]')){displayLimit+=120;app.renderPage();return;}
     const nav=event.target.closest('[data-workspace-page]');
     if(nav){event.preventDefault();navigate(nav.dataset.workspacePage);}
     if(event.target.closest('[data-workspace-reset]')){query='';owner='all';rating='all';document.querySelector('#workspaceSearch').value='';app.renderPage();}

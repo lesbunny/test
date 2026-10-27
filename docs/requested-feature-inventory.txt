@@ -1,0 +1,1300 @@
+COMPLETE FEATURE AND INTERACTION INVENTORY
+Shard or Keep + Destiny Item Manager (DIM)
+
+Websites
+- Shard or Keep: https://shardorkeep.com/
+- Destiny Item Manager (DIM): https://app.destinyitemmanager.com/
+
+SCOPE
+This document collects the detailed feature and interaction inventory for both websites, excluding the standalone AI advisor section. Some functions only appear after signing in to Bungie, synchronizing a Destiny account, selecting equipment, or opening a particular tool. Exact screens and available operations can change with Destiny updates, Bungie API support, and each website's current release.
+
+============================================================
+PART I — SHARD OR KEEP
+============================================================
+
+A. MAIN SITE AND NAVIGATION
+
+Public website interactions:
+- Home: view the application introduction, feature overview, database search, god-roll highlights, and Bungie connection entry point.
+- Features: explore explanations of the vault cleaner, Shard List, loadout builder, and armor appraisal.
+- Database: browse weapons, armor, activities, perks, and other Destiny reference material.
+- God Rolls: browse community-recommended weapons and perk combinations.
+- Guides: read explanations of god rolls, gear tiers, Armor 3.0, and anti-Champion functionality.
+- FAQ: read account-connection, appraisal, privacy, and dismantling explanations.
+- What's New: read dated release notes and see what has been added or changed.
+- Donate / Support: open the voluntary support link. Core features are advertised as free.
+- Connect Bungie Account: start the Bungie sign-in and authorization process.
+- Open Your Vault: navigate to the account-connected inventory experience.
+- Use mobile navigation on smaller displays.
+- Open shareable database entries.
+- View weapon screenshots and social-preview images on supported pages.
+
+Useful links:
+- Homepage: https://shardorkeep.com/
+- Changelog: https://shardorkeep.com/changelog
+- FAQ: https://shardorkeep.com/faq
+- Weapons database: https://shardorkeep.com/db/weapons
+
+B. PUBLIC DESTINY 2 DATABASE
+
+The public database can be explored without connecting a personal Bungie account. It is built from Destiny game data and includes reference information about weapons, armor, activities, perks, and more.
+
+1. Global database search
+- Enter a weapon, armor piece, exotic, or activity name.
+- Search for examples such as Fatebringer, Assassin's Cowl, or Inverted Spire.
+- Open matching results.
+- Browse the database by category instead of searching by name.
+- Navigate from a weapon or activity to related game information.
+- Follow links to individual perk descriptions and related reference pages.
+
+2. Weapon encyclopedia
+- Browse weapons grouped by weapon type.
+- Inspect a weapon's known perk pool.
+- See weapon stat information.
+- Inspect community-curated perk combinations.
+- See where an item drops, where that information is available.
+- Read explanations of perks in plain language.
+- View supported in-game weapon screenshots.
+- Open the dedicated weapon page.
+- Follow perk names to the perk encyclopedia.
+- Navigate from a weapon page to god-roll recommendations.
+- Identify a weapon's place in its weapon category.
+- Weapon categories include hand cannons, pulse rifles, auto rifles, shotguns, grenade launchers, sniper rifles, submachine guns, scout rifles, sidearms, fusion rifles, rocket launchers, swords, machine guns, bows, linear fusion rifles, glaives, and trace rifles.
+
+3. Armor encyclopedia
+- Browse armor by Titan, Hunter, or Warlock.
+- Browse by armor slot: helmet, gauntlets, chest, legs, and class item.
+- Open individual armor entries.
+- Inspect exotic intrinsic perks.
+- Identify armor belonging to a set.
+- Follow links to other pieces of a set.
+- Inspect known set bonuses.
+- Research exotic armor and exotic class items.
+- Use reference information to understand why particular armor may be useful to a build.
+
+4. Activity encyclopedia
+- Browse activity listings by activity type.
+- Open activities individually.
+- Inspect related versions of an activity.
+- See available difficulty variants.
+- Inspect modifiers and destination information when available.
+- Follow an activity's loot table.
+- Identify weapons and armor associated with an activity's sources.
+- Find exotics among listed rewards.
+- Use activity reference pages to research possible farming destinations.
+- Activity categories may include raids, dungeons, strikes, Nightfalls, missions, Lost Sectors, Crucible modes, Iron Banner, Trials of Osiris, Gambit, seasonal arenas, and exotic missions.
+
+5. God-roll database
+- Browse god rolls for individual weapons.
+- Explore weapon-type ranking pages, such as best hand cannons or rocket launchers.
+- Inspect recommended perks in each column.
+- Read reasoning and explanations for individual perks where supplied.
+- Compare public recommendations with perks on a weapon you own.
+- Navigate from a recommendation to the weapon's full database entry.
+- Share supported god-roll pages with a direct link.
+- View in-game screenshots used in supported page previews.
+- The site has advertised coverage of more than 1,100 weapons with sufficient curated wishlist information in its July 2026 update; exact coverage can change over time.
+
+6. Perk encyclopedia
+- Browse weapon perks.
+- Read plain-language explanations of perk effects.
+- Consult community-tested numbers where available.
+- See which weapons can roll a particular perk.
+- Navigate between perk and weapon pages.
+- Use perk information to understand why a particular roll is rated highly.
+
+7. Exotic catalyst encyclopedia
+- Browse exotic catalysts.
+- Inspect how a catalyst is acquired.
+- Read what is required to complete it.
+- Follow catalyst references to relevant weapon information.
+- Identify catalysts or objectives worth pursuing.
+
+8. Guides and explanations
+- Learn what a god roll means.
+- Understand why the strongest roll can differ between PvE and PvP.
+- Read gear quality tier explanations from T1 to T5.
+- Learn how Armor 3.0 stat scoring works.
+- Understand why armor's total stat value alone can be misleading.
+- Learn what anti-Champion weapon properties mean.
+- Understand how weapon perks and gear quality affect appraisal decisions.
+
+The public database is primarily a reference and research tool. The connected app adds personal vault analysis, recommendations, inventory operations, loadouts, and progression data.
+
+C. BUNGIE AUTHENTICATION AND ACCOUNT MANAGEMENT
+
+Sign-in flow
+1. Select Connect Bungie account.
+2. Begin Bungie's official OAuth sign-in flow.
+3. Authenticate on Bungie's website rather than entering a Bungie password into Shard or Keep.
+4. Authorize the requested permissions.
+5. If the account has multiple platform profiles without Cross Save, select the appropriate profile.
+6. Return to the app.
+7. Sync the selected profile.
+8. Load the personal inventory and appraisal information.
+
+Connected-account interactions
+- Display the Bungie identity and avatar.
+- Select the active character.
+- Switch the selected platform profile from Settings.
+- Re-sync after switching platforms.
+- Start or repeat a manual vault sync.
+- See sync progress.
+- See a completion summary.
+- Recover from expired authorization by reconnecting.
+- Access an account menu containing settings and personal preferences.
+- Review app-related information and support links.
+
+Permissions and limits
+- The app documents read and equipment-related permissions through Bungie.
+- It can move and equip eligible items through the API.
+- It cannot dismantle an item for you. The final dismantling action must be performed inside Destiny 2.
+
+Account settings and data management
+- Choose the platform profile used by the app.
+- Review the site's privacy information.
+- Delete the app account and stored synchronized data through Settings.
+- The site says it stores the Bungie membership ID, synced item information, appraisal verdicts, and progression data required for its features.
+
+D. PERSONAL VAULT INVENTORY
+
+Pages and inventory organization
+- Equipped: inspect currently equipped items.
+- Vault: inspect stored items.
+- Postmaster: inspect items waiting to be collected.
+- Weapons: browse weapons and appraisal results.
+- Armor: browse armor pieces and appraisal results.
+- Character selection: switch between characters.
+- Global search: search inventory from the top bar.
+- Item filters: narrow results while inspecting the vault.
+- Sticky filter bar: keep search/filter controls accessible while scrolling.
+- Paged item rendering: load large item collections incrementally rather than rendering everything at once.
+- Use game-style item tiles.
+- Preserve in-game ordering where supported.
+- Organize gear by character.
+
+Item tile and item detail interactions
+- Open and inspect an item.
+- Read its appraisal verdict.
+- View perks and stats using available detail tabs.
+- See whether the item is equipped.
+- Equip an eligible item.
+- Move an eligible item.
+- Lock or unlock an item.
+- Add or inspect a per-item note.
+- Open an item comparison.
+- Find eligible infusion fuel.
+- Inspect why an item's roll is considered desirable or undesirable.
+- Examine appraisal information used to compare a new copy against existing copies.
+- Inspect a god-roll gap panel showing which recommended perks are missing.
+- Review armor triage information.
+- Inspect notable armor stats.
+- See how an armor piece compares with better or worse pieces already owned.
+
+Maximum-power page
+- See the strongest equippable power available per slot.
+- Identify what is preventing higher power.
+- Find items that should be re-equipped to reach the maximum available power.
+
+E. WEAPON ROLL APPRAISAL
+
+What it evaluates
+- The specific perks on a weapon.
+- Community-recommended perk combinations.
+- Whether a curator explicitly marks a roll as undesirable.
+- Enhanced versions of perks and their base equivalents.
+- The weapon's gear tier.
+- The weapon's power.
+- Other copies of the same weapon in the collection.
+- Whether another copy is a stronger candidate to keep.
+
+Verdict and rating behavior
+- God roll: a match to a recommended roll.
+- Keeper: an item worth retaining according to its appraisal.
+- Filler: a lower-priority item.
+- Shard: a strong candidate for dismantling review.
+- Letter grades range from S+ through D in the documented grading system.
+- Wishlist match: identify the recommendation or curator associated with a roll.
+- Trash-roll flag: honor explicit negative recommendations where applicable.
+- Enhanced-perk normalization: avoid treating an enhanced perk as an entirely unrelated perk when checking a wishlist.
+- Refreshed community wishlist data can influence future appraisals after syncing.
+
+Duplicate ranking
+1. Evaluate copies against relevant roll recommendations.
+2. Consider gear-tier differences.
+3. Compare power.
+4. Rank competing copies.
+5. Identify the strongest keeper candidate.
+6. Flag inferior duplicates for review.
+7. Re-evaluate rankings after relevant changes, such as locking or infusing an item and syncing again.
+
+The aim is to determine which actual copy deserves a vault slot rather than labeling every copy independently.
+
+F. ARMOR 3.0 APPRAISAL
+
+Armor analysis
+- Read the armor archetype from game data.
+- Read artifice slots and stat-tuning options.
+- Account for tuning changes when calculating possible stat distributions.
+- Compare pieces on a common, assumed-masterworked basis.
+- Evaluate attainable stat spreads instead of considering only the displayed total.
+- Identify armor that another owned piece dominates.
+- Evaluate combinations of owned armor when determining whether an item is redundant.
+- Consider class items and relevant set bonuses.
+- Consider exotic class-item perk combinations when evaluating value.
+- Recognize event armor whose set bonus depends on a socketed selector.
+- Recheck rankings after relevant item changes and a subsequent sync.
+
+Example
+Two helmets may have different displayed totals. The one with a lower total may have useful tuning flexibility or an artifice slot. The app attempts to determine whether the lower-total helmet can achieve a stat distribution that the other helmet cannot match. An armor piece is meant to be marked redundant only when owned alternatives dominate the distributions it can achieve. This is more sophisticated than sorting armor only from lowest total to highest.
+
+G. THE SHARD LIST — RANKED VAULT CLEANUP
+
+The Shard List converts appraisal results into an actionable, prioritized cleanup queue.
+
+List behavior
+- Display items identified as shard candidates.
+- Rank items rather than listing them alphabetically.
+- Prioritize explicit trash-roll findings and redundant armor.
+- Consider verdict, gear tier, and power.
+- Rank inferior copies below the best available copy.
+- Exclude gear referenced by saved Shard or Keep loadouts.
+- Protect gear referenced by supported in-game loadouts.
+- Exclude locked items.
+- Exclude high-kill favorites from applicable cleanup workflows.
+- Review candidates one at a time.
+- Confirm multiple suggestions together.
+- Stop once enough space has been reclaimed.
+
+Keyboard-based review
+- Use arrow keys to navigate candidates.
+- Press 1 to keep an item.
+- Press 3 to confirm a shard decision.
+- Review recommendations without opening each item's detail dialog.
+- The New Drops interface uses a similar quick-review style.
+
+Safety boundaries
+- The Shard List is a recommendation and staging system, not an automatic dismantler.
+- It does not destroy gear.
+- It protects items used by saved builds.
+- It respects locking and applicable favorite protections.
+- It helps prepare confirmed junk for manual dismantling inside the game.
+- Confirming an appraisal is not the same operation as dismantling an item.
+
+H. BULK ACTIONS AND GEAR HOUSEKEEPING
+
+1. Move unequipped gear to the vault
+- Select the account housekeeping operation.
+- Move eligible unequipped weapons and armor off characters.
+- Leave equipped gear in place.
+- Leave Postmaster items in place.
+- Execute moves in the background.
+- Respect Bungie's transfer rate limits.
+- Stop when the vault is full.
+- Report what moved successfully.
+- Report items that could not be moved.
+
+2. Prepare a dismantling session
+- Begin with the ranked Shard List.
+- Confirm candidates intended for dismantling.
+- Stage confirmed junk onto a selected character in batches.
+- Fit as many eligible items as possible into available inventory space.
+- Locked items and weapons with at least 500 tracked kills are protected by the documented staging workflow.
+- Dismantle items yourself inside Destiny 2.
+- Return to the app and use Continue to prepare the next batch.
+- Check live inventory state between batches so newly freed slots can be reused.
+
+3. Prepare infusion fuel
+- Inspect eligible weapons and armor slots.
+- Identify high-power vault items that outperform the currently equipped item.
+- Exclude protected or especially valuable categories according to workflow eligibility rules, such as god rolls, keepers, exotics, locked items, and favorites.
+- Stage up to two eligible candidates for a slot where available.
+- Choose which candidate to consume in-game.
+
+4. Audit your equipped build
+- Check equipped armor and weapons.
+- Check armor mods.
+- Check subclass aspects and fragments.
+- Check artifact perks.
+- Check exotic synergy.
+- Identify potential misconfigurations.
+- Provide specific improvements with relevant mod and perk names.
+- Report when the setup is already considered optimal.
+
+The build audit evaluates the configuration being worn, not just unwanted stored items.
+
+I. NEW DROPS — INCOMING LOOT REVIEW
+
+- Identify recent drops since the previous visit or review.
+- Compare newly acquired copies with items already owned.
+- Show the appraisal verdict for a new weapon.
+- Use existing duplicate rankings to distinguish useful copies from weaker ones.
+- Mark an item to keep.
+- Mark an item as junk or confirm it for dismantling review.
+- Move between candidates with keyboard navigation.
+- Use 1 and 3 for the documented keep/shard triage actions.
+- Clear the New Drops badge by reviewing or tagging items.
+- Avoid reviewing already handled drops repeatedly.
+
+Typical workflow
+1. Acquire gear.
+2. Sync.
+3. Compare it against the existing collection.
+4. Decide what to keep.
+5. Review the remaining cleanup candidates.
+
+J. AI LOADOUT BUILDER
+
+The AI loadout builder accepts a natural-language description and proposes a configuration based on gear the player owns.
+
+Build-generation interactions
+- Enter a free-form description of the build.
+- Specify an activity, such as a Grandmaster Nightfall.
+- Describe a desired element, ability loop, damage resistance, or playstyle.
+- Choose or refine an activity using the activity selector.
+- Let the system consider activity modifiers.
+- Request a build based on gear actually owned.
+- Refine the proposed build through follow-up conversation.
+- Request alternative weapons or specific weapon characteristics.
+- Ask why a build works.
+- Save the resulting build as a loadout.
+
+What the builder can select
+- Owned weapons.
+- Owned exotic armor.
+- Armor pieces.
+- Subclass.
+- Subclass aspects and fragments.
+- Armor mods.
+- Relevant unlocked artifact perks.
+- Equipment with appropriate element and perk synergy.
+- Activity-specific gear when relevant.
+- Armor mods that support a requested defensive or offensive goal.
+
+Build reasoning
+- Explain why particular items were selected.
+- Save reasoning with the loadout so it can be revisited.
+- Ask follow-up questions such as why a setup works or what its tradeoffs are.
+
+Keep my equipped weapons
+- Leave current weapons alone when that option is enabled.
+- Focus the proposed build on armor, mods, subclass, and artifact-related choices instead of replacing the weapons already carried.
+
+Applying a build
+- Apply a saved loadout with a single action.
+- Equip eligible weapons and armor.
+- Configure supported subclass and mod settings.
+- Handle eligible item moves as needed.
+- Display a checklist of what was applied.
+- Report missing or problematic items when a saved loadout cannot be applied exactly.
+- Repair a loadout when appropriate replacements are available.
+- Some artifact changes still require an in-game action because of API limitations.
+
+Saving, updating, and sharing
+- Rename a saved loadout.
+- Attach notes.
+- Preserve the loadout's identity while updating it from the equipped setup.
+- Re-equip a previously saved configuration.
+- Save a configuration to an in-game loadout slot.
+- Equip supported in-game loadout slots through the app.
+- Share a public link that people can open without signing in.
+- Render a shared build from a snapshot, retaining the shared version even if the owner later changes their build.
+
+Loadout integrity
+- Keep gear used by saved loadouts out of the Shard List.
+- Detect when a referenced item is missing or has been dismantled.
+- Notify about relevant better replacements after synchronization.
+- Help repair a loadout using an eligible replacement.
+- Check live item and subclass state during application to reduce errors caused by changes made in-game since the last sync.
+
+Documented loadout support extends beyond basic weapons and armor to include subclass configuration, Ghost and Ghost mods, ship, Sparrow, emblem, weapon shaders, and weapon ornaments.
+
+K. PROGRESS TRACKING AND COMPLETION PLANNING
+
+1. Content Explorer
+- Browse activities still available in the game.
+- Inspect raids, dungeons, exotic missions, strikes, Lost Sectors, campaign missions, and relevant seasonal activities.
+- See which activities have or have not been cleared.
+- Use a To play filter to create an activity to-do list.
+- Review clear counts for completed activities.
+- Use lifetime clear data rather than relying exclusively on whether a currently existing character retains the historical record.
+
+2. Exotic catalysts
+- Browse the exotic catalyst collection.
+- Inspect current catalyst progress.
+- Group catalysts by weapon slot.
+- Identify missing or incomplete catalysts.
+- Research how catalysts are acquired.
+- Research what is required to complete them.
+
+3. Triumphs
+- Browse the in-game triumph tree.
+- Search for individual records.
+- Inspect recorded completion progress.
+- Review completion state for each triumph.
+- Browse completed entries separately within supported categories.
+- Navigate between pages while retaining useful browser-history behavior.
+
+4. Titles and seals
+- Browse titles and seals.
+- Review earned status.
+- Review gilded status.
+- Count remaining requirements.
+- See a remaining-triumph total.
+- Inspect a seal's remaining triumphs.
+- Group a completion plan by destination.
+- Prioritize an easier or more efficient route through remaining objectives.
+
+5. Monument of Triumph
+- View progress by category.
+- See how many triumphs remain toward the final title.
+- Check completion against the relevant category threshold.
+
+6. Maximum Power
+- Inspect maximum equippable power for each slot.
+- Identify slots limiting power.
+- Find gear that should be re-equipped to reach maximum power.
+- Use this information when deciding which gear to retain or infuse.
+
+L. OTHER SHARD OR KEEP DETAILS AND INTERACTIONS
+
+- Global item search: look up a weapon or item and its power in the connected account.
+- Character selection: focus on the character whose equipment you want to inspect.
+- Automatic synchronization: the app documents automatic syncing every 15 minutes.
+- Manual synchronization: run a new sync when you want more recent data.
+- Sync reporting: see a completion summary and relevant errors rather than relying only on the disappearance of a progress window.
+- Search help: learn supported search filters.
+- Persistent filtering: keep filters accessible while scrolling through large inventories.
+- Performance for large vaults: load items in pages instead of rendering every entry at once.
+- Platform switching: select a different linked platform profile and re-sync.
+- Feature requests: send suggestions for future additions.
+- Support link: optionally contribute to hosting costs.
+- Public sharing: share supported database entries and snapshots without requiring each viewer to connect a Bungie account.
+- The application describes itself as free, without ads or a premium paywall.
+
+============================================================
+PART II — DESTINY ITEM MANAGER (DIM)
+============================================================
+
+Main app: https://app.destinyitemmanager.com/
+Official user guide: https://github.com/DestinyItemManager/DIM/wiki
+Current changelog: https://github.com/DestinyItemManager/DIM/blob/master/docs/CHANGELOG.md
+
+A. MAIN NAVIGATION AND LAYOUT
+
+Core navigation
+- Inventory: view characters, vault, equipment, and item locations.
+- Progress: inspect quests, bounties, ranks, and progression objectives.
+- Vendors: browse vendor inventories and relevant purchase options.
+- Records: explore triumphs, collections, and related records.
+- Loadouts: create, save, organize, equip, and share builds.
+- Organizer: examine items in sortable tables and perform bulk operations.
+
+Other accessible tools and sections include Settings, item search, item popups, Item Feed, Armory, Compare, the optimizer, and other inventory tools. Exact placement can vary between desktop and mobile layouts.
+
+B. INVENTORY SCREEN
+
+Character panels
+- Display available characters.
+- View each character's class and information.
+- Inspect current power level.
+- Review equipped items.
+- Inspect unequipped inventory.
+- See items grouped into relevant gear categories.
+- Open the character header's action menu.
+- Select character-related automation tools.
+- Access loadout operations.
+- Move groups of items based on search results.
+- Access a quick way to apply equipment intended to achieve maximum power.
+
+Vault panel
+- View items stored in the vault.
+- Inspect equipment by item type.
+- Open individual items.
+- Drag items between inventory locations.
+- Use search to filter displayed items.
+- Identify tags and gear attributes.
+
+Item movement interactions
+- Click an item and select a target character or vault action from its popup.
+- Drag and drop an item onto a character, inventory area, or equipment slot.
+- Double-click an item to equip it to the active or most recently played character.
+- Run a search and use a character header's Transfer search action to move matching items.
+- Apply a saved loadout to move and equip its specified gear.
+
+Single Character Mode
+- Collapse the wider multi-character view.
+- Focus on the active character.
+- Treat other characters' eligible inventory as part of the vault view.
+- Hide armor incompatible with the focused character's class from the vault display.
+- Gain screen space for the selected character's equipment.
+
+Inventory display preferences
+- Adjust inventory presentation and item display.
+- Configure grouping and sorting behavior where supported.
+- Group or sort items by anti-Champion type, as documented in the changelog.
+
+C. SMART MOVES — AUTOMATIC INVENTORY MANAGEMENT
+
+Smart Moves helps a transfer succeed even if the destination is full. DIM may move other gear out of the way and use the vault as an intermediate location.
+
+Smart Move behaviors
+- Automatically make space for incoming gear.
+- Move items between a character and the vault.
+- Account for full inventory slots.
+- Respect the game's transfer pathway through the vault.
+- Reserve space when handling several related moves.
+- Prefer leaving equipped gear alone unless a move requires otherwise.
+- Consider recently moved items when deciding what to shuffle.
+- Consider in-game loadouts when deciding which pieces to preserve.
+- Use tags to influence destinations.
+- Prefer keeping appropriate gear on compatible characters.
+- Prefer moving lower-priority items to the vault when necessary.
+- Account for class compatibility.
+- Avoid unnecessary movement when a suitable destination already has space.
+
+Smart Moves is not a random shuffle system. Its rules are intended to preserve useful gear and minimize the disruption caused by moving other items. Tags help express intent: archived items should stay stored, while infusion items may need to be available for power upgrades.
+
+D. ITEM SEARCH — ADVANCED FILTERING
+
+Official documentation: https://github.com/DestinyItemManager/DIM/wiki/Item-Search
+
+1. Search syntax
+- Search by text or item name.
+- Search using filters such as is:.
+- Combine filters using implicit AND.
+- Use explicit and, or, and not.
+- Negate filters with - or not.
+- Use parentheses to group expressions.
+- Use autocomplete while composing queries.
+- Open filter help to discover search syntax.
+- Reuse recent searches.
+- Save searches for later.
+- Favorite frequently used searches.
+- Assign names to saved searches.
+
+Example: is:handcannon is:arc
+This looks for matching hand cannons that also satisfy the Arc filter.
+
+2. Search categories and properties
+Depending on the supported filter and current game data, search can look at:
+- Item type.
+- Weapon type.
+- Armor slot.
+- Element or damage type.
+- Weapon perks.
+- Armor stats.
+- Base stats.
+- Power level.
+- Gear tier.
+- Item tags.
+- Item notes and note hashtags.
+- Wishlist status.
+- Wishlist notes.
+- Duplicate status.
+- Whether an item is equipped.
+- Whether an item is included in a loadout.
+- Whether an item is new.
+- Whether an item is locked.
+- Catalyst state.
+- Anti-Champion or breaker properties.
+- Item season, source, and foundry information.
+- Other supported properties surfaced by filter help.
+
+3. Numerical and stat searches
+- Search for an item's stat value.
+- Use comparison operators such as >=, <=, or <.
+- Specify a range of values where supported.
+- Search armor by total stat value.
+- Search using a custom stat total.
+- Use base-stat searches when disregarding mod effects.
+- Combine stats with addition or averaging.
+- Find items according to stat ranking or distribution.
+
+Examples
+- power:<1900 matches items below the specified power value.
+- stat:range:>=50 searches for applicable items whose Range stat is at least 50, where that stat/filter is supported.
+
+4. Search history and saved searches
+- Open the search menu to see recent queries.
+- Select a previous query.
+- Type to filter suggestions.
+- Favorite a useful query.
+- Save a named query using a comment-style label.
+- Reuse saved searches across supported devices through DIM Sync.
+- Remove saved searches through available history or suggestion controls.
+
+5. Search-to-action interactions
+- Move all search matches to a character or vault.
+- Bulk-tag matching items.
+- Bulk-lock or unlock eligible items.
+- Open Compare with matching items.
+- Open Organizer for more extensive analysis.
+- Bulk-empty selected socket types, including supported shaders, ornaments, and mods.
+
+6. Keyboard interactions
+- Press F to start a search.
+- Press Shift+F to start a fresh search.
+- Use arrow keys to navigate suggestions.
+- Press Enter to select a suggestion.
+- Press Tab to autocomplete a supported filter.
+- Press Escape to clear the current search.
+
+E. ITEM TAGS AND NOTES
+
+Official documentation: https://github.com/DestinyItemManager/DIM/wiki/Tags-and-Notes
+
+DIM provides five built-in tags. Each item can have one of these tags; the tags are not user-renamable.
+
+- Favorite: specially valued gear; tends to remain where you put it.
+- Keep: gear you intend to retain; prefers remaining on the character.
+- Junk: gear intended for deletion; tends to move to a character for deletion.
+- Infuse: gear intended for infusion; tends to move to the vault.
+- Archive: gear worth keeping but not actively using; tends to stay in the vault.
+
+Tagging interactions
+- Open an item's popup and assign a tag.
+- Bulk-tag several items from search results.
+- Bulk-tag selected items in Organizer.
+- Clear a tag.
+- Change a tag.
+- Search for tagged items.
+- Filter for a specific tag.
+- Use tags as part of searches that move equipment.
+- Configure an option to synchronize certain tag states with item locking.
+- Use tags to influence Smart Moves when inventories are crowded.
+
+Notes
+- Open the item popup.
+- Enter free-form notes.
+- Keep a personal description of why an item matters.
+- Use notes as an informal personal labeling system.
+- Add hashtags within notes.
+- Search for those hashtags later.
+- Use hashtag autocomplete when composing searches.
+- Bulk-add notes to multiple items.
+- Bulk-modify notes.
+- Add to or remove content from existing notes.
+- Import or export supported tag/note information through CSV files.
+
+Example note: Good roll for #PvP
+You can later search for #pvp to find items with that note hashtag.
+
+Tags provide fixed structured classifications; notes let you create a custom organization system.
+
+F. ITEM POPUPS AND ITEM DETAIL INSPECTION
+
+Opening an item provides access to item information and other tools.
+
+Item inspection
+- View the item's name and icon.
+- Inspect power and relevant stats.
+- View the item's perks.
+- Inspect weapon traits and intrinsic information.
+- Inspect armor stats.
+- Examine available mods and socket information.
+- Review the item's tag and notes.
+- Inspect relevant acquisition or source information where available.
+- See community wishlist information.
+- See whether the item matches a recognized recommendation.
+- Inspect supported catalyst and anti-Champion indicators.
+- Navigate to relevant item-level tools from the popup.
+
+Actions from the popup
+- Equip an item.
+- Transfer an item.
+- Send an item to the active character.
+- Send an item to the vault.
+- Lock or unlock an item.
+- Edit its tag.
+- Edit its notes.
+- Open Compare.
+- Open Armory.
+- Open the Infusion Fuel Finder.
+- Expand or collapse item actions.
+- Open relevant external references when available.
+
+Community perk insights
+- DIM integrates additional descriptions and analysis of weapon and armor perks, including research contributed by the Clarity community.
+- The explanations help clarify perk behavior beyond the game's short descriptions.
+- The information is community-maintained and can be updated independently of DIM application releases.
+
+G. ITEM FEED — REVIEWING NEWLY ACQUIRED EQUIPMENT
+
+Official documentation: https://github.com/DestinyItemManager/DIM/wiki/Item-Feed
+
+Feed interactions
+- Open the Item Feed from the inventory interface.
+- Browse recently acquired items in acquisition order.
+- Open an item's popup directly from the feed.
+- Tag new drops without navigating through the entire inventory.
+- Open Compare for a new item.
+- Open other item-level tools.
+- Drag a feed item to a relevant inventory destination.
+- Drag an item into the loadout editor.
+- Use the feed on supported desktop and mobile layouts.
+
+Review-state behavior
+- By default, items disappear from the feed when tagged.
+- The changelog also documents tagging an item as marking it as no longer new.
+
+Typical workflow
+1. Acquire loot.
+2. Open the feed.
+3. Inspect the item.
+4. Compare it with existing equipment.
+5. Mark it with an appropriate tag.
+6. Move on to the next drop.
+
+H. WISHLISTS AND UNWANTED-ROLL LISTS
+
+Official documentation:
+- https://github.com/DestinyItemManager/DIM/wiki/Wish-Lists
+- https://github.com/DestinyItemManager/DIM/wiki/Creating-Wish-Lists
+
+Wishlist interactions
+- Load a curated wishlist.
+- Use the included community recommendation list.
+- Subscribe to an eligible external wishlist hosted on GitHub.
+- Create or edit your own wishlist file.
+- Include several acceptable perk combinations for one weapon.
+- Distinguish use cases such as PvE and PvP.
+- Include notes associated with wishlist entries.
+- Browse wishlist matches through the item tile.
+- Open an item's popup to inspect recommended perks.
+- Search for wishlist items using is:wishlist.
+- Search wishlist entries containing specific notes.
+- Identify weapons that have not matched a roll in the active wishlist.
+
+Wishlist indicators
+- A matching item receives a green thumbs-up indicator.
+- The popup highlights perks selected by the curator.
+- A supported trash-list entry can flag an undesirable combination.
+- Negative recommendations can be searched for through the trash-list filter.
+
+Customization and limitations
+- Use a premade wishlist or your own eligible file source.
+- Clear currently configured wishlist sources.
+- Update a hosted wishlist as recommendations change.
+- Include multiple specific perk combinations.
+- Use a wildcard entry to match a perk combination across supported inventory weapons.
+- Wishlist documentation describes this system for weapons, not as a general-purpose armor recommendation format.
+- Wishlist rules do not apply to shaders or ornaments.
+- External wishlist subscriptions are restricted to GitHub-hosted sources.
+
+I. ARMORY — ITEM RESEARCH
+
+Armory complements the personal inventory with a broader item-reference experience.
+
+Typical interactions
+- Open Armory from an item popup.
+- Search for or inspect a weapon.
+- Research perks and possible roll combinations.
+- Inspect an item independently of which copy you own.
+- Follow related game-information links.
+- Review wishlist recommendations associated with an item.
+- Navigate between weapon information and your own inventory.
+- Use reference information when evaluating a new drop.
+- Use documented external-reference links where provided.
+
+J. COMPARE — SIDE-BY-SIDE ITEM ANALYSIS
+
+Official documentation: https://github.com/DestinyItemManager/DIM/wiki/Compare
+
+How items enter Compare
+- Open Compare from the search interface.
+- Open it from an item's popup.
+- Select several items from Organizer and compare them.
+- Use a quick action to bring matching or related items together for review.
+
+What you can compare
+- Item stats.
+- Weapon perks.
+- Armor stats and stat distributions.
+- Relevant mods.
+- Intrinsic perks.
+- Weapon traits.
+- Available item properties supported by the comparison view.
+
+Comparison interactions
+- View items side by side.
+- Sort items by a particular row's values.
+- Use Shift-click to create multi-column sorts where supported.
+- See relative stat quality through colored indicators.
+- Identify the best item in a comparison using the blue highlight.
+- Spot comparatively strong or weak values.
+- Open the same selection in Organizer for more detailed sorting and filtering.
+- Use supported quick-filter buttons to narrow the comparison by a relevant property.
+
+Compare is useful when you own several variants of the same weapon or several armor pieces with competing strengths. It helps answer which copy has the better perk combination or which piece better supports a desired stat distribution instead of relying only on power or total stats.
+
+K. ORGANIZER — SORTABLE INVENTORY TABLES
+
+Official documentation: https://github.com/DestinyItemManager/DIM/wiki/Organizer
+
+1. Choose what to inspect
+- Select a major category such as weapons or armor.
+- Select the relevant subtype or equipment slot.
+- Display matching items in a table.
+- Further filter the table using DIM search syntax.
+
+2. Sort and group information
+- Click a column header to sort by that property.
+- Change the sort direction.
+- Hold Shift while clicking additional headers to use multi-column sorting.
+- Select which columns should be displayed.
+- Hide unnecessary columns.
+- Display additional information as needed.
+- Use different column configurations for weapons and armor.
+- Available columns include variants for perks, mods, shaders, base stats, and final stats.
+
+3. Filter by item property
+- Use the search box to narrow visible items.
+- Shift-click a cell to focus on items matching that value where supported.
+- Filter by an element.
+- Filter by a perk.
+- Filter by another relevant item characteristic.
+
+4. Bulk selection
+- Select items using the checkbox beside each row.
+- Select or deselect the visible set using the header checkbox.
+- Shift-click between two row checkboxes to select a range.
+
+5. Bulk operations
+- Lock selected items.
+- Unlock selected items.
+- Apply tags.
+- Edit notes.
+- Move items to a character.
+- Open Compare with selected items.
+
+6. Custom stat totals
+- Choose which stats contribute to a personal aggregate.
+- Save a custom stat configuration.
+- Add a custom stat-total column to Organizer.
+- Sort armor according to the resulting score.
+- Keep distinct configurations for each character class.
+
+7. CSV import and export
+- Export inventory data.
+- Open it in a spreadsheet editor.
+- Edit tags and notes.
+- Import supported CSV data to update those fields.
+- CSV export documentation covers weapons, armor, and Ghosts.
+
+Organizer is useful for systematic collection cleanup: filter a weapon type, narrow to certain perks, sort by stats, select inferior copies, and apply tags in bulk.
+
+L. INFUSION FUEL FINDER
+
+Official documentation: https://github.com/DestinyItemManager/DIM/wiki/Infusion-Fuel-Finder
+
+Interactions
+- Open the tool from an item's popup.
+- Examine eligible copies relevant to infusion.
+- Identify a relatively inexpensive option where possible.
+- Prefer a suitable matching item that avoids an upgrade module when applicable.
+- Otherwise, identify a high-power candidate.
+- Filter candidate gear using a supported search query.
+- Use an Infuse tag to narrow candidates to items marked for that purpose.
+- Move required items into the character's inventory.
+
+Limitation: DIM helps locate and move the items; it does not carry out the infusion. The final infusion must be performed in-game.
+
+M. FARMING MODE
+
+Farming Mode is a character-level inventory-management feature intended to make it easier to play an activity without continually managing a crowded inventory.
+
+- Open the character header menu.
+- Activate the farming-related operation.
+- Use DIM's inventory-management logic to move eligible items out of the way.
+- Rely on the same general smart-movement rules to preserve items where possible.
+- Return to the ordinary inventory view to continue managing equipment.
+
+Farming Mode is separate from general inventory search and the loadout editor.
+
+N. LOADOUTS — CREATING, SAVING, AND APPLYING BUILDS
+
+Official documentation:
+- https://github.com/DestinyItemManager/DIM/wiki/Loadouts
+- https://github.com/DestinyItemManager/DIM/wiki/Mods-in-Loadouts
+
+1. Create and edit loadouts
+- Create a loadout from the Loadouts page.
+- Create one through a character header.
+- Start with an empty loadout.
+- Save the currently equipped setup as a starting point.
+- Add items by dragging and dropping.
+- Select items using relevant gear-slot controls.
+- Include equipped items.
+- Include unequipped items you want to bring along.
+- Rename the loadout.
+- Add a description.
+- Use Destiny-themed symbols in supported names.
+- Add hashtags to organize loadouts.
+- Edit an existing loadout.
+- Create copies of loadouts.
+
+2. Partial loadouts
+A loadout does not have to replace everything you are wearing. You can save configurations that include only:
+- Weapons.
+- Armor.
+- Armor mods.
+- Fashion.
+- Subclass settings.
+- Other eligible equipment and cosmetic slots.
+
+When a partial loadout is applied, unspecified equipment remains as it was. Mods and fashion can be applied to the relevant currently equipped armor even when the loadout does not specify a complete armor set.
+
+3. Loadout capacity and organization
+- Save more loadouts than the game's in-game loadout limit permits.
+- Store free-form names and descriptions.
+- Use Destiny symbols.
+- Search loadout names.
+- Sort loadouts by name or last edit.
+- Filter using hashtag pills.
+- Organize loadouts around activities, weapons, roles, and characters.
+- DIM loadouts are stored per class, so a class's loadouts are not necessarily lost just because a particular character is deleted.
+- Class-independent loadouts are also available for configurations intended for use across characters.
+
+4. Apply a loadout
+- Choose the target character.
+- Select the saved loadout.
+- Request that it be equipped.
+- Let DIM retrieve relevant gear from the vault or another eligible character.
+- Allow Smart Moves to make room for incoming items.
+- Apply supported armor mods.
+- Apply supported subclass configuration.
+- Apply supported cosmetic choices.
+- Check the resulting gear and configuration.
+
+5. Loadout management actions
+- Edit a saved loadout.
+- Update it from current equipment.
+- Copy it.
+- Share it.
+- Reorganize its contents.
+- Change its description.
+- Add or remove items.
+- Replace individual pieces.
+- Optimize its armor.
+- Compare its current configuration with a proposed replacement.
+- View problems or potential improvements identified by Loadout Analysis.
+
+6. In-game loadouts and DIM loadouts
+- View eligible in-game loadouts through DIM.
+- Equip supported in-game loadouts.
+- Create a DIM loadout from an in-game loadout.
+- Use an applied DIM loadout as the starting point for an in-game snapshot.
+- Edit supported in-game loadout names and icons.
+- Move gear into place so an in-game loadout can be applied correctly.
+- Use DIM loadouts that remember equipment even if a weapon is subsequently reshaped.
+- Retain information about an item that has been deleted, so its former presence in a loadout does not disappear without explanation.
+
+7. Mod placement and fashion
+- Add mods in the loadout editor.
+- Select supported armor mods.
+- Preview mod placement.
+- Check whether chosen mods fit selected armor.
+- Create a mods-only loadout.
+- Create a fashion-only loadout.
+- Choose supported armor shaders and ornaments.
+- Apply mods and fashion at the loadout level.
+- Revisit saved mod choices when replacing armor.
+- Mod selections can be stored separately from armor item choices, allowing armor to be replaced without necessarily rebuilding all mod settings.
+
+O. LOADOUT OPTIMIZER — ADVANCED ARMOR AND STAT CALCULATIONS
+
+Official documentation: https://github.com/DestinyItemManager/DIM/wiki/Loadout-Optimizer
+
+The optimizer searches possible armor combinations and evaluates which sets meet chosen stat and mod requirements.
+
+1. Set stat priorities
+- Choose the character being built for.
+- Reorder stats by importance.
+- Enable stats to optimize.
+- Disable stats that should not be included in the optimization objective.
+- Specify minimum stat values.
+- Specify supported maximum values.
+- View achievable stat ranges.
+- Compare combinations by stat tiers and overall results.
+- Save defaults for future optimization runs.
+
+2. Choose armor and equipment restrictions
+- Specify an exotic armor piece.
+- Allow the optimizer to select the most suitable copy of an exotic.
+- Require an exotic in every candidate set.
+- Force a non-exotic set if desired.
+- Restrict eligible items using supported searches.
+- Pin an item that must be included.
+- Exclude items you do not want used.
+- Choose particular armor types.
+- Filter for specific set bonuses where supported.
+- Select supported subclass configuration.
+- Account for relevant fragment stat bonuses and penalties.
+
+3. Armor mod calculations
+- Select armor mods to use.
+- Account for their stat bonuses.
+- Restrict armor to compatible slots and elements.
+- Consider mod-energy requirements.
+- Include relevant non-stat mods in the configuration.
+- Use Auto Stat Mods where available.
+- Decide how to account for applicable Font mod effects.
+- Save eligible mod configurations with the resulting loadout.
+
+4. Masterworking assumptions
+- Compare armor under a common assumed-masterworked scenario.
+- Use the supported legendary-only masterwork assumption where appropriate.
+- Avoid unfairly ranking unmasterworked items against masterworked ones solely because of that difference.
+- Review resulting stat values before spending in-game upgrade materials.
+- These settings are estimates; the optimizer does not spend upgrade materials.
+
+5. Optimized combinations
+- Generate sets that satisfy requested constraints.
+- Inspect resulting stat mixes.
+- See how many combinations can achieve a particular mix.
+- Compare candidate sets.
+- Select alternate pieces within comparable combinations.
+- Inspect the best-fitting armor configuration under the selected priorities.
+
+6. Save, equip, and compare
+- Save an optimized set as a loadout.
+- Edit an existing loadout with newly optimized armor.
+- Equip an eligible candidate immediately.
+- Compare a proposed set against an existing loadout.
+- Save the improved version over the old one when desired.
+
+P. LOADOUT ANALYSIS — DETECT PROBLEMS AND IMPROVEMENTS
+
+Loadout Analysis evaluates saved builds and can help identify:
+- An unsuitable exotic choice.
+- A loadout that does not meet a requested stat target.
+- Unassigned or incompatible mods.
+- Equipment choices that do not meet loadout requirements.
+- Potentially better armor configurations with improved stat tiers.
+
+DIM documents background optimization that can identify comparable armor sets with strictly better stat tiers when the loadout meets relevant eligibility requirements. It accounts for factors including subclass settings, exotic selection, mod settings, and minimum stat requirements. When a better eligible configuration is found, Loadout Analysis can direct the user to Loadout Optimizer to update the build.
+
+Q. RANDOMIZE LOADOUT
+
+DIM documents a Randomize Loadout tool. Its purpose is to generate a randomized equipment arrangement rather than manually choosing every item.
+
+- Generate a randomized candidate configuration.
+- Use available search constraints where supported.
+- Inspect the resulting gear.
+- Adjust the configuration.
+- Save it as a loadout if desired.
+
+This differs from the optimizer: the optimizer finds equipment satisfying chosen goals, while Randomize Loadout generates a randomized candidate for experimentation or variety. Available options depend on the current implementation.
+
+R. PROGRESS — QUESTS, BOUNTIES, RANKS, AND OBJECTIVES
+
+The Progress section organizes information about the character's ongoing progression through Destiny.
+
+- Inspect tracked bounties.
+- Inspect quest information.
+- Review rank progress.
+- View relevant seasonal progression.
+- Review supported daily and weekly objectives.
+- Inspect seasonal hub orders where supported.
+- Follow objective completion progress.
+- Review supported quest milestones.
+- Navigate between progression categories.
+- Inspect relevant reputation and rank information.
+
+DIM's release history documents improvements including Pathfinder support, daily and weekly objectives, seasonal hub orders, quest milestones, and rank-related additions. Exact objectives depend on game data and the current season.
+
+S. VENDORS — VENDOR INVENTORIES AND PURCHASING
+
+- Open the Vendors page.
+- Browse supported vendors.
+- Inspect available items.
+- Review item details.
+- Examine relevant equipment before deciding whether to acquire it.
+- Access supported vendor purchase actions.
+- Use vendor information with item comparison and loadout planning.
+
+The exact vendor list, inventory, purchase options, and eligibility can change with Destiny's current game state. Not every in-game action is necessarily exposed through Bungie's API.
+
+T. RECORDS — TRIUMPHS, COLLECTIONS, AND HISTORICAL PROGRESS
+
+- Browse triumphs.
+- Inspect records and completion status.
+- Explore eligible collections.
+- Inspect collection entries.
+- Review relevant lore and lore-book information.
+- Navigate between supported record categories.
+- Inspect supported stats and trackers.
+- Review related title and gilding requirements where available.
+- Use records to understand collection progress.
+
+The changelog documents changes to lore book title presentation and stat tracker displays. Exact entries and actions depend on records exposed by Bungie's API and current game content.
+
+U. SPREADSHEETS AND DATA EXPORT
+
+Export
+- Export weapon data.
+- Export armor data.
+- Export Ghost data.
+- Open exported files in a spreadsheet application.
+- Use the data to conduct separate collection analysis.
+
+Import
+- Prepare a compatible CSV with the expected item identity and tag/note fields.
+- Import tags and notes from the CSV.
+- Update those fields for matching items.
+- Use a spreadsheet application for bulk classification before reimporting.
+- Organizer has its own export/import controls, so spreadsheet-based management does not depend solely on visiting Settings.
+
+V. DIM SYNC, ACCOUNT ACCESS, AND SETTINGS
+
+Sync and refresh
+- Synchronize supported saved DIM information.
+- Refresh inventory information.
+- Access saved searches and supported settings across devices.
+- Use automatic refresh features.
+- Reopen the app on a different device with supported synchronized data.
+
+Application environments
+- Use DIM in a desktop browser.
+- Use its supported mobile interface.
+- Use supported desktop and mobile app options.
+- Access a responsive inventory and item-management interface on different screen sizes.
+
+Settings
+- Configure supported inventory display preferences.
+- Adjust item presentation.
+- Configure available application preferences.
+- Manage supported synchronization settings.
+- Inspect account and login options.
+- Configure wishlists and other item-management behavior.
+
+Offline mode
+- DIM documents an offline mode.
+- Offline mode should not be interpreted as the ability to perform live Bungie inventory changes without a working connection to Bungie's services.
+- Equipment transfers and other server-dependent operations require the relevant service to be reachable.
+
+Keyboard shortcuts
+- ?: show available keyboard shortcuts.
+- F: start a search.
+- Shift+F: start a fresh search.
+- M: toggle the menu.
+- R: refresh inventory.
+- A: open Armory for an item.
+- C: open Compare.
+- I: open Infusion Fuel Finder.
+- K: expand or collapse item actions.
+- L: lock or unlock an item.
+- P: pull an item to the active character.
+- V: move an item to the vault.
+- N: edit an item's notes.
+
+Item-action shortcuts apply in the relevant item popup or selected-item contexts. DIM also documents shortcuts for applying specific tags to items.
+
+Additional integrations
+- Elgato Stream Deck: DIM documents an integration for supported actions.
+- Feedback and bug reports: the project provides a documented feedback process.
+- Open-source project: source code and user documentation are publicly available.
+- Release history: the changelog records feature additions, fixes, and behavioral changes.
+
+============================================================
+PART III — COMBINED FEATURE MAP AND COMPARISON
+============================================================
+
+Feature comparison
+
+Feature category | Shard or Keep | DIM
+
+Personal inventory | Yes | Yes
+View vault and Postmaster | Yes | Yes
+Move and equip items | Yes | Yes
+Intelligent inventory transfers | Bulk cleanup and staged operations | Smart Moves and loadout transfers
+Detailed item inspection | Yes | Yes
+Per-item notes | Yes | Yes
+Community god-roll recommendations | Core feature | Wishlist integration
+Individual weapon roll grading | Letter grades and verdicts | Wishlist and item indicators rather than the same verdict system
+Rank duplicate weapon copies | Yes | Search, Compare, and Organizer tools
+Armor appraisal | Automatic Armor 3.0 redundancy analysis | Detailed stat comparison
+Armor set optimization | AI-assisted recommendations | Dedicated Loadout Optimizer
+Natural-language loadout generation | Yes | Manual configuration plus optimizer
+Activity-aware build recommendations | Yes | Manual loadout configuration and optimization
+Advanced item search | Yes | Yes, with extensive search syntax
+Bulk vault cleanup | Core feature | Organizer, search, tags, and Smart Moves
+Dismantling automation | Stages confirmed candidates; final dismantling is in-game | Organizes gear; final dismantling is in-game
+Infusion fuel | Yes | Yes
+Loadouts | Yes | Yes
+Detect missing loadout items | Yes | Retains information about missing items and analyzes loadouts
+Protect loadout gear from cleanup | Yes | Tags, searches, and loadout-aware movement workflows
+Share builds | Public snapshots | Shared DIM loadouts
+New drops review | Yes | Item Feed
+Maximum-power help | Dedicated maximum-power page | Character actions and associated loadout tools
+Activity completion tracking | Content Explorer | Progress and Records provide related tracking
+Triumphs and titles | Dedicated progression pages | Records and related progression tools
+Exotic catalyst tracking | Dedicated catalyst page | Item search and supported item/record information
+Public Destiny database | Extensive database | Armory and item reference tools
+Vendor browsing | Not a primary feature | Dedicated Vendors section
+CSV export/import | Not a primary feature | Yes
+Sortable inventory tables | Not a primary feature | Organizer
+Random loadout generation | Not a primary feature | Randomize Loadout
+Keyboard shortcuts | Documented quick-review actions | Extensive application shortcuts
+Automatic synchronization | Yes | Refresh and supported sync features
+
+THE MOST IMPORTANT FUNCTIONAL DIFFERENCES
+
+1. Deciding what to keep
+Shard or Keep evaluates the actual collection, grades rolls, ranks competing copies, evaluates Armor 3.0 redundancy, and turns its results into a prioritized Shard List. Its AI loadout builder can propose a configuration based on items the player actually owns.
+
+DIM gives flexible tools for inspecting and comparing the same equipment, especially search, wishlist indicators, Compare, and Organizer. Its approach is more centered on giving players detailed tools to make the decision themselves.
+
+2. Building an optimized loadout
+Both are capable in different ways. Shard or Keep takes a natural-language request and proposes a complete build based on owned equipment. DIM has a detailed optimizer that allows users to specify stat priorities, constraints, mods, exotics, eligible armor, and subclass configuration. DIM is particularly strong when precise control over equipment selection is needed.
+
+3. Managing a huge inventory
+DIM offers multiple ways to work with the same collection: search queries, tags, notes, Item Feed, Compare, Organizer, CSV operations, Smart Moves, and Farming Mode. Shard or Keep approaches the problem through appraisals, the ranked Shard List, bulk actions, and loadout protection.
+
+4. Understanding what is left to do
+Shard or Keep provides dedicated Content Explorer, catalyst, triumph, title, and completion-planning pages. DIM has Progress and Records, along with quest, rank, collection, and objective information. The systems organize this information differently.
+
+IMPORTANT BOUNDARIES AND CAVEATS
+
+Shard or Keep
+- It cannot dismantle gear through Bungie's API.
+- Appraisals are recommendations based on available game data and community wishlists, not an absolute guarantee that a roll is ideal for every player.
+- The loadout builder uses synchronized gear; it cannot equip an item the player does not have.
+- Certain artifact changes must still be performed inside Destiny 2.
+- Accurate current information depends on synchronization and Bungie's service availability.
+
+DIM
+- The armor optimizer is a calculation tool, not an in-game armor-upgrade or resource-spending mechanism.
+- The Infusion Fuel Finder does not carry out infusion.
+- Searches only support attributes and filter syntax implemented by DIM.
+- Wishlist recommendations depend on the selected wishlist and its available content.
+- Equipment transfers can require several underlying moves, even when initiated through one action.
+- Vendor, purchase, and equipment operations depend on Bungie's service capabilities and state.
+- Offline mode does not mean all live game actions work without a server connection.
+
+OFFICIAL REFERENCES
+
+Shard or Keep
+- Home: https://shardorkeep.com/
+- Changelog: https://shardorkeep.com/changelog
+- FAQ: https://shardorkeep.com/faq
+- Weapons database: https://shardorkeep.com/db/weapons
+
+Destiny Item Manager
+- User guide: https://github.com/DestinyItemManager/DIM/wiki
+- Item Search: https://github.com/DestinyItemManager/DIM/wiki/Item-Search
+- Tags and Notes: https://github.com/DestinyItemManager/DIM/wiki/Tags-and-Notes
+- Item Feed: https://github.com/DestinyItemManager/DIM/wiki/Item-Feed
+- Wish Lists: https://github.com/DestinyItemManager/DIM/wiki/Wish-Lists
+- Creating Wish Lists: https://github.com/DestinyItemManager/DIM/wiki/Creating-Wish-Lists
+- Compare: https://github.com/DestinyItemManager/DIM/wiki/Compare
+- Organizer: https://github.com/DestinyItemManager/DIM/wiki/Organizer
+- Infusion Fuel Finder: https://github.com/DestinyItemManager/DIM/wiki/Infusion-Fuel-Finder
+- Loadouts: https://github.com/DestinyItemManager/DIM/wiki/Loadouts
+- Mods in Loadouts: https://github.com/DestinyItemManager/DIM/wiki/Mods-in-Loadouts
+- Loadout Optimizer: https://github.com/DestinyItemManager/DIM/wiki/Loadout-Optimizer
+- Current changelog: https://github.com/DestinyItemManager/DIM/blob/master/docs/CHANGELOG.md
+
+TAKEAWAY
+Shard or Keep specializes in helping players decide what to keep, identifying redundant gear, preparing safe vault cleanup, proposing builds, and tracking progression. DIM specializes in detailed inventory control and offers a broad toolkit for search, transfers, item comparison, organizing, loadout construction, armor optimization, vendors, records, and spreadsheet workflows. Both can inspect and move equipment, but their appraisal, loadout, automation, and progression tools are not identical.

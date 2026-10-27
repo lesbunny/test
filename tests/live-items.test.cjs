@@ -74,3 +74,22 @@ test('equipped items load even when the inventory component omits that character
  const ctx=context();ctx.live.profile=profile;ctx.live.itemDefs={123:{displayProperties:{name:'The Call'}}};
  const items=ctx.buildLiveItems(profile);assert.equal(items.length,1);assert.equal(items[0].name,'The Call');assert.equal(items[0].equipped,true);
 });
+test('native Organizer bulk actions refresh before execution and resolve each item again',async()=>{
+ const calls=[];let refreshed=false;const items={a:{id:'a',name:'A',locked:false},b:{id:'b',name:'B',locked:true}};
+ const ctx=context({needConnection:()=>true,refreshProfileOnly:async()=>{refreshed=true;calls.push('refresh');},executeSequential:async(label,jobs,executor)=>{assert.equal(refreshed,true);for(const job of jobs)await executor(job);},getItem:id=>items[id],setLiveLock:async item=>{calls.push('lock:'+item.id);item.locked=!item.locked;},moveLiveItem:async(item,target)=>calls.push('move:'+item.id+':'+target)});
+ vm.runInContext(fn('executeWorkbench'),ctx);await ctx.executeWorkbench({ids:['a','b'],operation:'lock'});assert.deepEqual(calls,['refresh','lock:a']);
+ await ctx.executeWorkbench({ids:['b'],operation:'move',target:'Vault'});assert.equal(calls.at(-1),'move:b:Vault');
+});
+test('free socket changes revalidate eligibility and use only the free plug endpoint',async()=>{
+ const calls=[];let eligible=true;
+ const ctx=context({needConnection:()=>true,getItem:()=>({id:'a',itemInstanceId:'900719925474099333'}),socketOptions:()=>[{index:2,plugs:[{hash:123,canInsert:eligible}]}],ownerCharacterId:()=> 'c1',refreshProfileOnly:async()=>{},bungieRequest:async(path,options)=>calls.push({path,body:options.body}),updateHeader:()=>{},LL:{toast:()=>{},renderPage:()=>{} }});
+ ctx.live.membership={membershipType:3};vm.runInContext(fn('executeGameAction'),ctx);
+ await ctx.executeGameAction({action:'socket',id:'a',index:2,hash:123});assert.equal(calls[0].path,'/Destiny2/Actions/Items/InsertSocketPlugFree/');assert.equal(calls[0].body.itemId,'900719925474099333');assert.equal(calls[0].body.plug.socketArrayType,0);assert.equal(calls[0].body.plug.socketIndex,2);
+ eligible=false;await assert.rejects(ctx.executeGameAction({action:'socket',id:'a',index:2,hash:123}),/eligibility changed/);assert.equal(calls.length,1);assert.equal(ctx.live.busy,false);
+});
+test('in-game loadout writes validate slot and action before sending request',async()=>{
+ const calls=[];const ctx=context({needConnection:()=>true,gameLoadouts:()=>[{characterId:'c1',loadouts:[{items:[]}]}],refreshProfileOnly:async()=>{},bungieRequest:async(path,options)=>calls.push({path,body:options.body}),updateHeader:()=>{},LL:{toast:()=>{},renderPage:()=>{}}});ctx.live.membership={membershipType:3};vm.runInContext(fn('executeGameAction'),ctx);
+ await ctx.executeGameAction({action:'equip',characterId:'c1',index:0});assert.equal(calls[0].path,'/Destiny2/Actions/Loadouts/EquipLoadout/');
+ await ctx.executeGameAction({action:'snapshot',characterId:'c1',index:0});assert.equal(calls[1].path,'/Destiny2/Actions/Loadouts/SnapshotLoadout/');
+ await assert.rejects(ctx.executeGameAction({action:'snapshot',characterId:'c1',index:1}),/slot changed/);await assert.rejects(ctx.executeGameAction({action:'delete',characterId:'c1',index:0}),/Unsupported/);assert.equal(calls.length,2);
+});

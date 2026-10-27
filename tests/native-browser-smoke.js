@@ -1,0 +1,22 @@
+(async()=>{
+const app=LittleLightApp,original=structuredClone(app.getState()),checks=[];
+const assert=(v,label)=>{if(!v)throw Error(label);checks.push(label);};
+const click=action=>{const b=document.querySelector(`[data-native="${action}"]`);if(!b)throw Error('Missing '+action);b.click();};
+const tick=()=>new Promise(r=>setTimeout(r,20));
+try{
+ app.go('organizer');assert(!document.querySelector('iframe'),'organizer is native');
+ const first=document.querySelector('[data-native="select-row"]');const id=first.dataset.id;first.click();document.querySelector('#organizerTag').value='archive';click('bulk-tag');assert(app.getState().items.find(i=>i.id===id).tags.includes('archive'),'organizer tags selected item');click('undo');assert(JSON.stringify(app.getState().items.find(i=>i.id===id).tags)===JSON.stringify(original.items.find(i=>i.id===id).tags),'annotation undo restores tags');
+ document.querySelector('#organizerNote').value='test note';click('append-note');assert(app.getState().items.find(i=>i.id===id).notes.includes('test note'),'bulk append notes');click('undo');
+ const form=document.querySelector('#organizerForm');form.elements.query.value='is:weapon and not is:locked';form.requestSubmit();assert([...document.querySelectorAll('[data-native="select-row"]')].every(b=>{const i=app.getState().items.find(i=>i.id===b.dataset.id);return i.type==='Weapon'&&!i.locked;}),'organizer boolean filters');
+ app.go('loadouts');await tick();click('new-loadout');assert(document.querySelector('#draftForm'),'native empty editor');
+ document.querySelector('#draftForm').elements.name.value='Native test <build>';click('draft-equipped');assert(document.querySelectorAll('[data-draft-slot] option:checked').length>=8,'editor supports slots');click('draft-share');const link=document.querySelector('#shareResult textarea').value;assert(link.includes('#build='),'share creates self-contained snapshot');assert(!document.querySelector('#shareResult iframe'),'share remains native');click('draft-save');assert(app.getState().loadouts.some(l=>l.name==='Native test <build>'),'editor saves build');await tick();assert(document.querySelector('[data-native="edit-loadout"]'),'saved builds have editor');
+ app.go('optimizer');document.querySelector('#optimizerForm').requestSubmit();assert(document.body.textContent.includes('candidate sets'),'optimizer generates candidates');assert(document.querySelector('[data-native="save-set"]'),'optimizer set can become saved build');click('save-set');assert(document.querySelector('#draftForm'),'optimizer opens editable draft');
+ const i=app.getState().items.find(i=>i.type==='Weapon');i.itemHash='123456';i.perkHashes=['77','88'];app.go('wishlist');const wf=document.querySelector('#wishlistForm');wf.elements.text.value='dimwishlist:item=123456&perks=77,88#notes:Personal roll';wf.requestSubmit();assert(LittleLightExtension.assessRoll(i).status==='good','personal wishlist exact match');assert(LittleLightExtension.assessRoll({...i,perkHashes:[]}).status==='unverified','wishlist never verifies missing perks');
+ i.firstSeen=Date.now()+1000;delete i.reviewedAt;app.getState().preferences.reviewedDropsAt=Date.now();app.go('feed');assert(document.querySelector('[data-native="feed-keep"]'),'new drop review');click('feed-keep');assert(i.tags.includes('keep')&&i.reviewedAt,'feed tag reviews item');assert(document.body.textContent.includes('All caught up'),'reviewed feed item disappears');
+ app.go('settings');document.querySelector('#nativeDensity').value='compact';document.querySelector('#nativeDensity').dispatchEvent(new Event('change',{bubbles:true}));assert(document.documentElement.dataset.density==='compact','density preference applies');
+ app.openItem(i.id);await tick();assert(document.querySelector('[data-native="item-fuel"]'),'inspector links native fuel');click('item-fuel');assert(document.querySelector('#fuelTarget').value===i.id,'fuel target preserved');
+ app.getState().source='bungie';app.go('inventory');assert(!document.querySelector('iframe'),'connected inventory never embeds DIM');
+ for(const page of ['organizer','optimizer','editor','settings','armory','activities','collections','progress','vendors','wishlist','feed','fuel','help','gamebuilds','sockets']){app.go(page);assert(document.documentElement.scrollWidth<=innerWidth,page+' fits viewport');}
+ return {passed:checks.length,checks};
+}finally{app.replaceState(original);document.documentElement.dataset.density=original.preferences.density||'comfortable';app.go('dashboard');}
+})();

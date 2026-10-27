@@ -1,0 +1,142 @@
+name: Visible polish + sort + cache bust
+on:
+  workflow_dispatch:
+jobs:
+  polish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch files
+        run: |
+          set -euo pipefail
+          python3 << 'PY'
+          import pathlib, re
+
+          html_path = pathlib.Path('site/index.html')
+          css_path = pathlib.Path('site/extension.css')
+          js_path = pathlib.Path('site/extension.js')
+          html = html_path.read_text(encoding='utf-8')
+          css = css_path.read_text(encoding='utf-8')
+          js = js_path.read_text(encoding='utf-8')
+
+          # Cache-bust extension.js reference so browsers load new manifest code
+          html2, n = re.subn(
+              r'src="\./extension\.js(?:\?v=[^"]*)?"',
+              'src="./extension.js?v=20261027-unknown-fix-2"',
+              html,
+          )
+          print('cache-bust js refs', n)
+          html = html2
+
+          html2, n = re.subn(
+              r'href="\./extension\.css(?:\?v=[^"]*)?"',
+              'href="./extension.css?v=20261027-polish-2"',
+              html,
+          )
+          print('cache-bust css refs', n)
+          html = html2
+
+          # Visible version chip in sidebar brand
+          if 'll-version-chip' not in html:
+              html = html.replace(
+                  '<strong>little light</strong><small>DESTINY COMPANION</small>',
+                  '<strong>little light</strong><small>DESTINY COMPANION</small><span class="ll-version-chip">v0.2 · unknown-item fix</span>',
+                  1,
+              )
+              print('version chip added')
+
+          # Inventory sort helpers + multi-key sort
+          if 'function bucketRank' not in html:
+              m = re.search(r'(function matchesQuery\(item, query\) \{.*?\n  \}\n)', html, re.S)
+              if m:
+                  helpers = (
+                      "  function bucketRank(bucket) {\n"
+                      "    const order=['Kinetic Weapons','Energy Weapons','Power Weapons','Helmet','Gauntlets','Chest Armor','Leg Armor','Class Item','Subclass','Ghost','Sparrow','Ship','Emblem','Artifact','Postmaster','Other'];\n"
+                      "    const i=order.indexOf(bucket); return i>=0?i:50;\n"
+                      "  }\n"
+                      "  function ownerRank(owner) {\n"
+                      "    if(owner==='Hunter'||/^Hunter/.test(owner||''))return 0;\n"
+                      "    if(owner==='Titan'||/^Titan/.test(owner||''))return 1;\n"
+                      "    if(owner==='Warlock'||/^Warlock/.test(owner||''))return 2;\n"
+                      "    if(owner==='Vault')return 9; return 5;\n"
+                      "  }\n"
+                  )
+                  html = html[:m.end()] + helpers + html[m.end():]
+                  print('bucketRank helpers inserted')
+              else:
+                  print('WARN matchesQuery not found')
+
+          old_sort = (
+              "const sort={power:(a,b)=>numeric(b.power)-numeric(a.power),name:(a,b)=>a.name.localeCompare(b.name),"
+              "stats:(a,b)=>totalStats(b)-totalStats(a),bucket:(a,b)=>a.bucket.localeCompare(b.bucket)}[sortBy]||((a,b)=>numeric(b.power)-numeric(a.power));\n"
+              "    return items.sort(sort);"
+          )
+          new_sort = (
+              "const primary={power:(a,b)=>numeric(b.power)-numeric(a.power),name:(a,b)=>String(a.name||'').localeCompare(String(b.name||'')),"
+              "stats:(a,b)=>totalStats(b)-totalStats(a),bucket:(a,b)=>bucketRank(a.bucket||a.gearBucket)-bucketRank(b.bucket||b.gearBucket)||String(a.name||'').localeCompare(String(b.name||''))}[sortBy]||((a,b)=>numeric(b.power)-numeric(a.power));\n"
+              "    return items.sort((a,b)=>{const o=ownerRank(a.owner)-ownerRank(b.owner);if(o)return o;const br=bucketRank(a.bucket||a.gearBucket)-bucketRank(b.bucket||b.gearBucket);if(sortBy==='bucket'&&br)return br;const p=primary(a,b);if(p)return p;if(br)return br;return String(a.name||'').localeCompare(String(b.name||''));});"
+          )
+          if old_sort in html:
+              html = html.replace(old_sort, new_sort)
+              print('sort fixed')
+          elif 'ownerRank(a.owner)' in html:
+              print('sort already fixed')
+          else:
+              print('WARN sort pattern missing')
+
+          # Grouped inventory section order
+          old_group = (
+              "const grouped=[...sections.entries()].sort(([a],[b])=>{const ao=a.split('|||')[0],bo=b.split('|||')[0];"
+              "const rank=x=>x==='Hunter'?0:x==='Titan'?1:x==='Warlock'?2:x==='Vault'?3:4;return rank(ao)-rank(bo)||a.localeCompare(b);});"
+          )
+          new_group = (
+              "const grouped=[...sections.entries()].sort(([a],[b])=>{"
+              "const [ao,ab]=a.split('|||'),[bo,bb]=b.split('|||');"
+              "const or=ownerRank(ao)-ownerRank(bo); if(or)return or;"
+              "const br=bucketRank(ab)-bucketRank(bb); if(br)return br;"
+              "return a.localeCompare(b);});"
+          )
+          if old_group in html:
+              html = html.replace(old_group, new_group)
+              print('group sort fixed')
+          else:
+              print('group sort pattern missing or already fixed')
+
+          # Expand filter chips
+          html = html.replace(
+              "const filters=['All','Weapons','Armor','Exotics','Equipped','Protected','Vault'];",
+              "const filters=['All','Weapons','Armor','Exotics','Equipped','Protected','Vault','Junk','Tagged'];",
+          )
+
+          # Material-ish CSS polish (append once)
+          polish = '''
+
+/* Visible polish 2026-10-27 */
+.ll-version-chip{display:inline-block;margin-top:6px;padding:3px 8px;border-radius:999px;font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#eaddff;background:#4f378b;border:1px solid #d0bcff55}
+.gear-card{transition:transform .15s ease,box-shadow .15s ease}
+.gear-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px #0006}
+.button{border-radius:999px!important}
+.filter-chip{border-radius:999px!important}
+.panel{border-radius:16px!important}
+.nav-item.active{background:#4a4458!important;color:#e8def8!important}
+.search-wrap{border-radius:999px!important}
+'''
+          if 'Visible polish 2026-10-27' not in css:
+              css += polish
+              print('css polish appended')
+
+          html_path.write_text(html, encoding='utf-8')
+          css_path.write_text(css, encoding='utf-8')
+          print('html', len(html), 'css', len(css))
+          print('DONE')
+          PY
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site/index.html site/extension.css
+          git status
+          git commit -m "Visible polish: version chip, cache-bust, inventory sort order" || echo "no changes"
+          git push

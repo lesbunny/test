@@ -66,10 +66,9 @@ The GitHub Pages workflow publishes the `site/` directory and validates the brow
 
 ### Run and validate locally
 
-Requires Python 3 to serve and Node 18+ for tests (verified with Node 24). The companion works without a build; the integrated DIM engine requires Node 24, Corepack, and its pinned dependency build.
+Requires Python 3 to serve and Node 18+ for tests (verified with Node 24). The complete application is static and works without a build.
 
 ```sh
-bash scripts/build-dim.sh
 python3 -m http.server 3000 --directory site
 node --check site/app.js
 node --check site/extension.js
@@ -81,20 +80,27 @@ Open `http://localhost:3000`. In a CodeRabbit workspace, register that service b
 
 Source layout: `app.js` owns local workspace/UI behavior, `inventory-core.js` owns deterministic search/sort/planning rules, and `extension.js` owns Bungie integration. Styles are in `app.css`, `extension.css`, and the final `material.css` theme layer.
 
-### DIM engine and companion review tools
+### Native workbench
 
-The application now builds **DIM 8.148.0** from pinned MIT-licensed source. See [integration documentation](integrations/dim/README.md) and its preserved license. Native inventory, drag-and-drop, item inspection, organizer, search, loadouts, optimizer, socket/mod/subclass tools, vendors, collections, catalysts, progression and wishlist handling use that engine. Public OAuth is shared through the current tab; use Connect Bungie in Little Light. Connected inventory opens the engine automatically. Offline/imported gear uses the character-and-vault board.
+All screens now render inside Little Light. There are no embedded websites or bundled DIM runtime. Connected and imported inventory use the same native UI, tags, notes, and loadouts.
 
-Dark Material styling is the default. The menu also includes conservative armor/weapon appraisal, a new-drop inbox, saved-build monitoring, and persistent loot goals, alongside the existing Shard List, farming, compare and bulk workflows. These are independent implementations informed by Shard or Keep's public feature documentation, not its proprietary implementation.
+- **Organizer:** paginated sortable tables, Shift-click multi-column sorting and range selection, bulk tags/notes with undo, comparison, CSV export, previewed ID-based annotation merges, and previewed live move/lock/unlock operations.
+- **Search:** grouped boolean expressions, implicit/explicit AND, OR, NOT, quoted phrases, numeric ranges, element/type predicates, and stat comparisons. Search is not a complete implementation of DIM's grammar.
+- **Loadout editor:** empty or equipped setups, individual slot selection, partial gear configurations, randomized eligible gear, preserved missing-item snapshots, and self-contained share links. Shared notes and gear are visible to anyone holding the link. Existing live gear-application confirmation remains in place.
+- **Optimizer:** class, exotic, search, pinned items, stat weights, minimums, maximums, top ten candidate sets, and edit/save. Bounded to 200,000 combinations, with explicit incomplete-search reporting. Uses reported stats, not a tuning/mod/masterwork simulation.
+- **Armory:** public Bungie definitions for weapons, armor, plugs, catalyst-named entries, stats, screenshots, known socket pools, and owned copies. Activities, collectible entries, and triumph records have searchable native pages. Account records, ranks, objectives, and vendor offers use read-only Bungie requests.
+- **Review:** personal positive/negative/wildcard wishlists, item feed with keyboard triage, per-item fuel lookup, and existing conservative Shard List staging.
+- **Game configurations:** native in-game slot inspection, gear copy into the editor, equip/overwrite previews, and per-item eligible free/reversible plug changes. API eligibility is rechecked immediately before mutation. Live-account outcomes remain unverified.
+- **Quality of life:** native board drag/drop with live confirmation, inventory pagination, density, keyboard help and inspector shortcuts, optional 15-minute visible-tab sync, and cached offline shell. Live account operations still need connectivity and authorization.
 
 ### Current boundaries
 
-Signed-in DIM operations need live-account verification; shipping upstream code does not establish that every feature works with this deployment's Public OAuth scopes. DIM Sync requires a separately registered DIM API key, which this deployment does not provide. DIM's loadouts/tags and companion loadouts/tags are currently separate stores; refresh the companion after engine mutations and explicitly protect companion gear before a Shard List session. Companion safeguards are unchanged. Dismantling remains in-game.
+The full requested inventory and honest feature coverage are in [docs/feature-coverage.md](docs/feature-coverage.md). This is **not full DIM/Shard or Keep parity**. In particular: complete loadout-level socket/mod/subclass/fashion configuration, Armor 3.0 tuning/dominance, natural-language AI builds, cloud sync, in-game loadout identifier customization, complete progression trees/lifetime activity clears, and vendor purchasing remain unimplemented. The static deployment has no AI or cloud-sync backend. No fake advisor or hosted-site iframe stands in for those features.
 
-This does not reproduce Shard or Keep's proprietary DestinyGPT, hosted AI loadout generation, shared cloud builds, or its complete Armor 3.0 tuning/dominance model. Appraisal reports observed stats and wishlist matches, not proof that an item is safe to dismantle. The signed-in Shard dashboard could not be inspected without an account.
+Live mutations retain preview, pacing, capacity checks, and per-item reporting. Real authenticated validation requires the user's Bungie application/account; synthetic tests do not establish that every live action succeeds. Dismantling, infusion, and resource spending remain in-game.
 
 ## Screenshot-inspired workspace
 
 The default dashboard and Equipped, Vault, Weapons, Armor, and Search views use a persistent sidebar, a global search header, compact appraisal cards, and dark Material surfaces. Equipped separates worn gear from carried alternatives in each equipment slot. Each Guardian's Save as loadout button opens the existing save dialog with that Guardian selected.
 
-Dashboard counts use the current inventory; its recent-drop panel uses observed timestamps and clearly labels the sample inventory. Wishlist badges require an exact community match. Keep means local protection, and Unrated means no decision has been established. Global search supports the companion query syntax and the `/` shortcut. Native DIM remains in the Tools menu.
+Dashboard counts use the current inventory; its recent-drop panel uses observed timestamps and clearly labels the sample inventory. Wishlist badges require an exact community match. Keep means local protection, and Unrated means no decision has been established. Global search supports the companion query syntax and the `/` shortcut. Every menu destination belongs to Little Light.

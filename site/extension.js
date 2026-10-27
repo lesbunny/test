@@ -422,7 +422,7 @@
       setStatus('Downloading inventory and item definitions…');
       await loadManifest();
       const m=live.membership;
-      const path='/Destiny2/'+encodeURIComponent(m.membershipType)+'/Profile/'+encodeURIComponent(m.membershipId)+'/?components=100,102,103,200,201,202,205,206,300,301,302,304,305,307,400';
+      const path='/Destiny2/'+encodeURIComponent(m.membershipType)+'/Profile/'+encodeURIComponent(m.membershipId)+'/?components=100,102,103,200,201,202,205,206,300,301,302,304,305,307,310,400';
       live.profile=await bungieRequest(path);
       const charactersData=live.profile&&live.profile.characters&&live.profile.characters.data||{};
       live.characters=distinguishCharacterNames(Object.entries(charactersData).map(([id,c],i)=>({
@@ -1033,7 +1033,7 @@
   async function refreshProfileOnly() {
     if(!live.membership)throw new Error('No Bungie profile is selected.');
     const m=live.membership;
-    const path='/Destiny2/'+encodeURIComponent(m.membershipType)+'/Profile/'+encodeURIComponent(m.membershipId)+'/?components=100,102,103,200,201,202,205,206,300,301,302,304,305,307,400';
+    const path='/Destiny2/'+encodeURIComponent(m.membershipType)+'/Profile/'+encodeURIComponent(m.membershipId)+'/?components=100,102,103,200,201,202,205,206,300,301,302,304,305,307,310,400';
     live.profile=await bungieRequest(path);
     const charactersData=live.profile&&live.profile.characters&&live.profile.characters.data||{};
     live.characters=distinguishCharacterNames(Object.entries(charactersData).map(([id,c],i)=>({characterId:String(id),classType:Number(c.classType),name:CLASS_NAMES[Number(c.classType)]||('Guardian '+(i+1)),light:Number(c.light||0),emblemPath:c.emblemPath||''})).sort((a,b)=>a.classType-b.classType));
@@ -1374,13 +1374,21 @@
     });
   }
 
+  let personalText=null,personalMap=new Map();
   function assessRoll(item) {
     if(!item||!item.itemHash)return {status:'unknown',label:'No roll data',notes:'No item hash was available.'};
     // Do not treat missing socket data as evidence that a weapon is a bad roll.
     if(isWeapon(item)&&!(item.perkHashes||[]).length)return {status:'unverified',label:'Weapon perk data missing',notes:'Bungie did not return active socket plug hashes for this weapon. Staging and infusion-fuel selection are blocked until its roll can be verified.'};
     const hash=String(item.itemHash);
+    const text=state().preferences?.personalWishlist||'';
+    if(text!==personalText){personalMap=parseWishlist(text,'personal').map;personalText=text;}
+    const personal=personalMap;
+    const keep=matchWishlist([...(personal.get(hash)||[]),...(personal.get('-1')||[])],item);
+    if(keep)return {status:'good',label:'Personal wishlist match',notes:keep.notes||'Matches your personal wishlist.'};
+    const reject=matchWishlist(personal.get('-'+hash)||[],item);
     const good=matchWishlist(live.goodRolls.get(hash)||[],item);
     if(good)return {status:'good',label:'Community wishlist match',notes:good.notes||'Matches a curated community weapon roll.',source:'voltron.txt'};
+    if(reject)return {status:'avoid',label:'Personal unwanted roll',notes:reject.notes||'Matches your unwanted roll list.'};
     const avoid=matchWishlist(live.choosyRolls.get(hash)||[],item);
     if(avoid)return {status:'avoid',label:'Choosy trash candidate',notes:avoid.notes||'This roll is in choosy_voltron.txt but not the default keeper list; the source describes these additional entries as opinionated trash rolls.',source:'choosy_voltron.txt'};
     if(live.goodRolls.has(hash)||live.choosyRolls.has(hash))return {status:'known',label:'Community rolls exist; current roll not matched',notes:'A roll for this item exists in the source list, but the active perks were not an exact match.'};
@@ -1416,7 +1424,7 @@
         if(t)title=t[1].trim();
         continue;
       }
-      const m=line.match(/dimwishlist:item=(\d+)(?:&[^ \r\n]*)?/i);
+      const m=line.match(/dimwishlist:item=(-?\d+)(?:&[^ \r\n]*)?/i);
       if(!m)continue;
       const hash=String(m[1]);
       const perksM=line.match(/[?&]perks=([0-9,]+)/i);
@@ -1652,7 +1660,9 @@
     'confirm-live-action':async()=>{
       const p=live.pendingAction;live.pendingAction=null;closeModal();
       if(!p)return;
-      if(p.type==='loadout')await executeLoadout(p);
+      if(p.type==='native-game')await executeGameAction(p);
+      else if(p.type==='native-workbench')await executeWorkbench(p);
+      else if(p.type==='loadout')await executeLoadout(p);
       else if(p.type==='move-all-vault')await executeMoveAll(p);
       else if(p.type==='prep-shard') {
         try{await executePrepShard(p);}catch(err){live.busy=false;live.operation='';await refreshProfileOnly().catch(()=>{});updateHeader();LL.renderPage();LL.toast('Could not prepare the Shard List: '+(err&&err.message||String(err)),'error');}
@@ -1740,7 +1750,80 @@
     state().farm.enabled=false;
     LL.persist();
   }
-  window.LittleLightExtension={handlesPage,renderPage,afterRender,assessRoll};
+  function gameLoadouts() {
+    return live.characters.map(c=>({characterId:String(c.characterId),name:c.name,loadouts:live.profile?.characterLoadouts?.data?.[c.characterId]?.loadouts||[]}));
+  }
+  function socketOptions(id) {
+    const item=getItem(id);if(!item?.isLiveItem)return [];
+    const sockets=live.profile?.itemComponents?.sockets?.data?.[item.itemInstanceId]?.sockets||[];
+    const reusable=live.profile?.itemComponents?.reusablePlugs?.data?.[item.itemInstanceId]?.plugs||{};
+    return sockets.map((socket,index)=>({index,current:socket.plugHash,name:componentPerkName(socket.plugHash),plugs:(reusable[index]||[]).map(p=>({hash:p.plugItemHash,name:componentPerkName(p.plugItemHash),canInsert:p.canInsert===true,enabled:p.enabled===true}))}));
+  }
+  function previewGameAction(action,payload) {
+    if(!needConnection()||live.busy)return;
+    if(action==='socket'){
+      const item=getItem(payload.id),socket=socketOptions(payload.id).find(s=>s.index===payload.index),plug=socket?.plugs.find(p=>p.hash===payload.hash&&p.canInsert);
+      if(!item||!plug)throw new Error('This plug is not currently eligible for this socket. Refresh inventory.');
+      openConfirm('Change '+item.name+' socket?',socket.name+' → '+plug.name+'\nOnly Bungie’s free, reversible plug endpoint is used. Bungie may reject the action based on your current activity or socket rules.',{type:'native-game',action,...payload},'Apply free plug');
+    }else if(['equip','snapshot'].includes(action)){
+      const character=gameLoadouts().find(c=>c.characterId===payload.characterId);
+      if(!character||!Number.isInteger(payload.index)||payload.index<0||payload.index>=character.loadouts.length)throw new Error('Invalid in-game loadout slot.');
+      openConfirm(action==='equip'?'Equip in-game loadout?':'Overwrite in-game loadout?',character.name+' · slot '+(payload.index+1)+(action==='snapshot'?'\nThis replaces this in-game slot with the currently equipped setup.':'\nBungie will apply this slot’s equipment and supported configuration.'),{type:'native-game',action,...payload},action==='snapshot'?'Replace slot':'Equip slot');
+    }else throw new Error('Unsupported game action.');
+  }
+  async function executeGameAction(payload) {
+    if(!needConnection()||live.busy)return;
+    live.busy=true;updateHeader();
+    try{
+      await refreshProfileOnly();
+      let body,path;
+      if(payload.action==='socket'){
+        const item=getItem(payload.id),socket=socketOptions(payload.id).find(s=>s.index===payload.index);
+        if(!item?.itemInstanceId||!socket?.plugs.some(p=>p.hash===payload.hash&&p.canInsert))throw new Error('Socket eligibility changed. Preview it again.');
+        const characterId=ownerCharacterId(item)||getSelectedCharacter()?.characterId;
+        if(!characterId)throw new Error('Choose a Guardian.');
+        body={itemId:String(item.itemInstanceId),characterId:String(characterId),membershipType:Number(live.membership.membershipType),plug:{socketIndex:payload.index,socketArrayType:0,plugItemHash:payload.hash}};
+        path='/Destiny2/Actions/Items/InsertSocketPlugFree/';
+      }else{
+        const c=gameLoadouts().find(c=>c.characterId===payload.characterId);
+        if(!c||!Number.isInteger(payload.index)||payload.index<0||payload.index>=c.loadouts.length)throw new Error('Loadout slot changed. Refresh and retry.');
+        if(!['equip','snapshot'].includes(payload.action))throw new Error('Unsupported game action.');
+        body={characterId:payload.characterId,loadoutIndex:payload.index,membershipType:Number(live.membership.membershipType)};
+        path='/Destiny2/Actions/Loadouts/'+(payload.action==='equip'?'EquipLoadout':'SnapshotLoadout')+'/';
+      }
+      await bungieRequest(path,{method:'POST',body});await refreshProfileOnly();LL.toast('Bungie confirmed the requested change.','success');
+    }finally{live.busy=false;updateHeader();LL.renderPage();}
+  }
+  function previewWorkbench(ids,operation,target) {
+    if(!needConnection()||live.busy)return;
+    if(!['move','lock','unlock'].includes(operation))throw new Error('Unsupported inventory operation.');
+    if(operation==='move'&&target!=='Vault'&&!live.characters.some(c=>c.name===target))throw new Error('Choose a valid destination.');
+    const items=unique(ids.map(String)).map(getItem).filter(Boolean);
+    if(!items.length)throw new Error('Select items first.');
+    openConfirm(operation==='move'?'Move selected gear?':'Change selected locks?',items.map(i=>i.name+' · '+i.owner+(operation==='move'?' → '+target:' → '+operation)).join('\n')+'\nEach item is checked again before its operation. Equipped or nontransferable gear is not moved.',{type:'native-workbench',ids:items.map(i=>i.id),operation,target},'Confirm '+operation);
+  }
+  async function executeWorkbench(payload) {
+    if(!needConnection()||live.busy)return;
+    await refreshProfileOnly();
+    await executeSequential('Organizer '+payload.operation,payload.ids.map(id=>({id,name:getItem(id)?.name||id})),async job=>{
+      const item=getItem(job.id);if(!item)throw new Error('Item is no longer present.');
+      if(payload.operation==='move')await moveLiveItem(item,payload.target);
+      else if(item.locked!==(payload.operation==='lock'))await setLiveLock(item);
+    });
+  }
+  async function readProfile(components) {
+    if(!isConnected())throw new Error('Connect Bungie before loading account progress.');
+    return bungieRequest('/Destiny2/'+live.membership.membershipType+'/Profile/'+live.membership.membershipId+'/?components='+components.join(','));
+  }
+  async function readVendors() {
+    if(!isConnected())throw new Error('Connect Bungie before loading vendors.');
+    const c=getSelectedCharacter();if(!c)throw new Error('Select a Guardian first.');
+    return bungieRequest('/Destiny2/'+live.membership.membershipType+'/Profile/'+live.membership.membershipId+'/Character/'+c.characterId+'/Vendors/?components=400,401,402');
+  }
+  window.LittleLightExtension={handlesPage,renderPage,afterRender,assessRoll,readProfile,readVendors,previewWorkbench,gameLoadouts,socketOptions,previewGameAction,
+    setPersonalWishlist:text=>{if(text.trim()&&!parseWishlist(text,'personal').count)throw new Error('No valid dimwishlist entries were found.');},
+    refreshIfIdle:()=>{if(isConnected()&&!live.busy&&!live.farmCycleRunning)refreshLiveInventory().catch(err=>LL.toast(err.message,'error'));}
+  };
   updateHeader();
   LL.renderPage();
   if(new URL(location.href).searchParams.has('connect'))document.getElementById('connectBungieButton')?.click();

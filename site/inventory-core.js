@@ -14,17 +14,20 @@
     return delta||String(a.name).localeCompare(String(b.name))||String(a.id).localeCompare(String(b.id));
   }
   function matches(item,query,context={}) {
-    const tokens=(text(query).match(/(?:[^\s"]+|"[^"]*")+/g)||[]);
+    const tokens=(text(query).match(/(?:[^\s()"]+|"[^"]*")+|[()]/g)||[]);
     const check=token=>{
       let negative=token.startsWith('-'); if(negative)token=token.slice(1);
       const t=token.replace(/"/g,'');
-      const [key,...rest]=t.split(':');const value=rest.join(':');
+      let [key,...rest]=t.split(':');let value=rest.join(':');
+      if(key==='stat'&&rest.length>1){key='stat.'+rest[0];value=rest.slice(1).join(':');}
       let result;
       if(key==='is'&&value) {
-        const flags={locked:!!item.locked,equipped:!!item.equipped,exotic:!!item.exotic,protected:!!context.protected?.(item),favorite:(item.tags||[]).some(t=>['favorite','fav'].includes(text(t))),vault:item.owner==='Vault',weapon:item.type==='Weapon',armor:item.type==='Armor',postmaster:!!item.isPostmaster,duplicate:!!context.duplicate?.(item),unresolved:!!item.definitionMissing,crafted:!!item.crafted};
-        result=flags[value]??false;
+        const flags={locked:!!item.locked,equipped:!!item.equipped,exotic:!!item.exotic,protected:!!context.protected?.(item),favorite:(item.tags||[]).some(t=>['favorite','fav'].includes(text(t))),vault:item.owner==='Vault',weapon:item.type==='Weapon',armor:item.type==='Armor',postmaster:!!item.isPostmaster,duplicate:!!context.duplicate?.(item),unresolved:!!item.definitionMissing,crafted:!!item.crafted,loadout:!!context.loadout?.(item),new:!!item.firstSeen&&!item.reviewedAt,wishlist:!!context.wishlist?.(item),dupe:!!context.duplicate?.(item)};
+        result=flags[value]??(text(item.itemCategory||item.bucket).replace(/[^a-z0-9]/g,'')===value.replace(/[^a-z0-9]/g,'')||({1:'kinetic',2:'arc',3:'solar',4:'void',6:'stasis',7:'strand'})[item.damageType]===value);
       } else if(['power','stat','total','kills'].includes(key)||key.startsWith('stat.')) {
         const n=key==='power'?item.power:key==='kills'?item.trackedKills:key.startsWith('stat.')?Object.entries(item.stats||{}).find(([s])=>text(s)===key.slice(5))?.[1]:total(item);
+        const range=value.match(/^(\d+)\.\.(\d+)$/);
+        if(range){const yes=n!=null&&Number(n)>=Number(range[1])&&Number(n)<=Number(range[2]);return negative?!yes:yes;}
         const m=value.match(/^(>=|<=|>|<|=)?(\d+)$/);
         result=!!m&&n!=null&&({'>' :Number(n)>Number(m[2]),'<':Number(n)<Number(m[2]),'>=':Number(n)>=Number(m[2]),'<=':Number(n)<=Number(m[2]),'=':Number(n)===Number(m[2])}[m[1]||'=']);
       } else if(value&&['owner','type','bucket','tag','perk','rarity','notes','element'].includes(key)) {
@@ -33,9 +36,12 @@
       } else result=text([item.name,item.bucket,item.type,item.owner,item.rarity,item.notes,...(item.tags||[]),...(item.perks||[])].join(' ')).includes(t);
       return negative?!result:result;
     };
-    // OR separates groups; tokens within each group are ANDed.
-    const groups=[[]];for(const token of tokens)token==='or'?groups.push([]):groups.at(-1).push(token);
-    return groups.some(group=>group.length>0&&group.every(check))||!tokens.length;
+    // Recursive descent gives AND precedence over OR and retains implicit AND.
+    let position=0,valid=true;
+    function atom(){const token=tokens[position++];if(token==='not'||token==='-')return !atom();if(token==='('){const result=or();if(tokens[position++]!==')')valid=false;return result;}if(!token||[')', 'and', 'or'].includes(token)){valid=false;return false;}return check(token);}
+    function and(){let result=atom();while(position<tokens.length&&!['or',')'].includes(tokens[position])){if(tokens[position]==='and')position++;const next=atom();result=result&&next;}return result;}
+    function or(){let result=and();while(tokens[position]==='or'){position++;const next=and();result=result||next;}return result;}
+    if(!tokens.length)return true;const result=or();return valid&&position===tokens.length&&result;
   }
   function unwrapDefinitions(data,table) {
     if(!data||typeof data!=='object'||Array.isArray(data))return null;

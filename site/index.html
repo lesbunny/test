@@ -13,6 +13,9 @@
   <link rel="stylesheet" href="./arsenal.css">
   <link rel="stylesheet" href="./workspace.css">
 
+<link rel="stylesheet" href="./native.css">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#171b25">
 </head>
 <body>
   <a class="skip-link" href="#pageContent">Skip to content</a>
@@ -59,7 +62,7 @@
           <button class="icon-button" data-action="help" aria-label="About this app">?</button>
         </div>
       </header>
-      <nav class="arsenal-nav" aria-label="Inventory tools"><button data-action="go-inventory">Inventory</button><button data-tool-page="dim">Live DIM</button><button data-tool-page="dimloadouts">Loadouts</button><button data-tool-page="optimizer">Optimizer</button><button data-tool-page="organizer">Organizer</button><button data-tool-page="vendors">Vendors</button><button data-tool-page="progress">Progress</button><button data-tool-page="appraisal">Appraisal</button></nav>
+      <nav class="arsenal-nav" aria-label="Inventory tools"><button data-action="go-inventory">Inventory</button><button data-action="go-loadouts">Loadouts</button><button data-tool-page="optimizer">Optimizer</button><button data-tool-page="organizer">Organizer</button><button data-tool-page="vendors">Vendors</button><button data-tool-page="progress">Progress</button><button data-tool-page="appraisal">Appraisal</button></nav>
       <div id="sampleBanner" class="sample-banner"><span class="banner-icon">✦</span><span><b>You’re viewing sample gear.</b> Import your inventory export to use your own items. No Bungie account is connected.</span><button data-action="dismiss-banner" aria-label="Dismiss sample notice">×</button></div>
       <section class="page-content" id="pageContent" tabindex="-1" aria-live="polite"></section>
       <footer class="footer"><span>Little Light is an independent community project, not affiliated with Bungie, DIM, or Shard or Keep.</span><span><a href="https://github.com/lesbunny/test" target="_blank" rel="noreferrer">Source on GitHub ↗</a></span></footer>
@@ -72,6 +75,8 @@
 <script src="./app.js"></script>
 <script src="./extension.js?v=20261027-inventory-refresh-1" defer></script>
 <script src="./tools.js" defer></script>
+<script src="./native-core.js" defer></script>
+<script src="./native-tools.js" defer></script>
 <script src="./workspace-ui.js" defer></script>
 </body>
 </html>

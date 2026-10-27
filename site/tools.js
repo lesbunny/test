@@ -1,18 +1,12 @@
-/* Companion workflows alongside the independently hosted, MIT-licensed DIM engine. */
+/* Native inventory review workflows. */
 (() => {
   'use strict';
   const LL=window.LittleLightApp,h=LL.escapeHtml;
-  const routes={dim:['Inventory','inventory'],organizer:['Organizer','organizer'],optimizer:['Loadout optimizer','optimizer'],dimloadouts:['DIM loadouts','loadouts'],vendors:['Vendors','vendors'],collections:['Collections & catalysts','records'],progress:['Progress & triumphs','progress'],feed:['Item feed','item-feed'],settings:['DIM settings','settings']};
-  function hasSession(){try{const t=JSON.parse(sessionStorage.getItem('little-light-bungie-session-v1')||'null');return Boolean(t?.membership_id&&t.access_token&&Number(t.expires_at)>Date.now());}catch{return false;}}
   const pages={appraisal:'Gear appraisal',drops:'New drops',watch:'Build watcher',goals:'Loot goals'};
   const heading=(title,description)=>`<div class="page-heading"><div><div class="eyebrow">LITTLE LIGHT COMPANION</div><h1>${h(title)}</h1><p>${h(description)}</p></div></div>`;
   const inspect=i=>`<button class="review-item" data-action="open-item" data-id="${h(i.id)}"><strong>${h(i.name)}</strong><small>${h(i.owner)} · ${h(i.bucket)} · ${Number(i.power)||'—'}</small></button>`;
   function renderPage(page){
     const s=LL.getState();
-    if(routes[page]||(page==='inventory'&&s.source==='bungie')){
-      const [title,route]=routes[page]||routes.dim;
-      return `<div class="engine-toolbar"><b>${h(title)}</b><span>Powered by DIM · Material dark</span><a class="button button-quiet" href="./engine/#/${route}" target="_top">Open full screen ↗</a></div><iframe class="dim-engine" title="${h(title)} — DIM engine" src="./engine/#/${route}" allow="clipboard-write"></iframe>`;
-    }
     if(page==='appraisal'){
       const armor=s.items.filter(LL.isArmor).sort((a,b)=>LL.totalStats(b)-LL.totalStats(a));
       const weapons=s.items.filter(LL.isWeapon);
@@ -20,7 +14,7 @@
     }
     if(page==='drops'){
       const seen=Number(s.preferences.reviewedDropsAt||0);
-      const items=s.items.filter(i=>Number(i.firstSeen)>seen).sort((a,b)=>b.firstSeen-a.firstSeen);
+      const items=s.items.filter(i=>Number(i.firstSeen)>seen&&!i.reviewedAt).sort((a,b)=>b.firstSeen-a.firstSeen);
       return heading('Fresh from the field','Items first observed since your last review. The first account sync establishes the initial inventory; timestamps track this browser’s observations.')+`<div class="selection-bar"><b>${items.length} unreviewed items</b><button class="button" data-tool="review-drops">Mark all reviewed</button><button class="button button-quiet" data-action="refresh-bungie">Refresh inventory</button></div><section class="panel">${items.map(i=>`<div class="review-row">${inspect(i)}<time>${h(new Date(i.firstSeen).toLocaleString())}</time></div>`).join('')||'<div class="empty-state">All caught up. New items appear here after your next inventory sync.</div>'}</section>`;
     }
     if(page==='watch'){
@@ -29,9 +23,9 @@
     if(page==='goals')return heading('Plan your next drop','Keep a personal wish list of gear and perk combinations to chase. Names are matched against your current inventory; check rolls in the inspector.')+`<form id="lootGoalForm" class="selection-bar"><label>Item name <input name="name" class="control" required maxlength="120" placeholder="Apex Predator"></label><label>Desired perks / source <input name="notes" class="control" maxlength="300" placeholder="Reconstruction · Bait and Switch"></label><button class="button">Add goal</button></form><section class="panel">${(s.preferences.lootGoals||[]).map((g,n)=>{const owned=s.items.filter(i=>i.name.toLowerCase()===g.name.toLowerCase());return `<div class="review-row"><h2>${h(g.name)}</h2><p>${h(g.notes)}</p><span class="tag">${owned.length?`${owned.length} owned — inspect perks`:'Not in current inventory'}</span>${owned.map(inspect).join('')}<button class="button button-quiet" data-tool="remove-goal" data-index="${n}">Remove goal</button></div>`;}).join('')||'<div class="empty-state">Add a weapon, armor piece, or exotic you want to find.</div>'}</section>`;
     return '';
   }
-  window.LittleLightTools={handlesPage:p=>Boolean(routes[p]||pages[p]||(p==='inventory'&&LL.getState().source==='bungie'&&hasSession())),renderPage};
+  window.LittleLightTools={handlesPage:p=>Boolean(pages[p]),renderPage};
   document.addEventListener('click',e=>{
-    const nav=e.target.closest('[data-tool-page]');if(nav){LL.go(nav.dataset.toolPage);document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b===nav));document.querySelector('#pageCrumb').textContent=routes[nav.dataset.toolPage]?.[0]||pages[nav.dataset.toolPage];}
+    const nav=e.target.closest('[data-tool-page]');if(nav){LL.go(nav.dataset.toolPage);document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b===nav));document.querySelector('#pageCrumb').textContent=pages[nav.dataset.toolPage]||nav.dataset.toolPage;}
     const b=e.target.closest('[data-tool]');if(!b)return;
     const s=LL.getState();
     if(b.dataset.tool==='review-drops')s.preferences.reviewedDropsAt=Date.now();
@@ -43,9 +37,9 @@
     const s=LL.getState();s.preferences.lootGoals||=[];s.preferences.lootGoals.push({name,notes:String(f.get('notes')||'').trim()});LL.persist();LL.renderPage();
   });
   const nav=document.querySelector('.nav-list');
-  nav.insertAdjacentHTML('beforeend','<div class="nav-label nav-label-gap">DIM ENGINE</div>'+Object.entries(routes).map(([id,[title]])=>`<button class="nav-item" data-tool-page="${id}"><span class="nav-icon">◇</span><span>${h(title)}</span></button>`).join('')+'<div class="nav-label nav-label-gap">DISCOVER & REVIEW</div>'+Object.entries(pages).map(([id,title])=>`<button class="nav-item" data-tool-page="${id}"><span class="nav-icon">✧</span><span>${h(title)}</span></button>`).join(''));
+  nav.insertAdjacentHTML('beforeend','<div class="nav-label nav-label-gap">DISCOVER & REVIEW</div>'+Object.entries(pages).map(([id,title])=>`<button class="nav-item" data-tool-page="${id}"><span class="nav-icon">✧</span><span>${h(title)}</span></button>`).join(''));
   document.addEventListener('click',e=>{if(!e.target.closest('#sidebar,#menuToggle'))document.querySelector('#sidebar').classList.remove('open');});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelector('#sidebar').classList.remove('open');});
   const requested=new URL(location.href).searchParams.get('page');
-  if(requested&&([...Object.keys(routes),...Object.keys(pages),'inventory','loadouts','builder'].includes(requested)))LL.go(requested);
+  if(requested&&([...Object.keys(pages),'inventory','loadouts','builder'].includes(requested)))LL.go(requested);
 })();

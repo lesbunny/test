@@ -20,7 +20,7 @@
   assert(document.querySelectorAll('.review-item').length===0,'reviewed drops cleared');
   app.getState().loadouts.push({name:'Missing fixture',itemIds:['missing-test']});app.go('watch');
   assert(document.body.textContent.includes('A saved item is missing'),'build watcher detects missing gear');
-  for(const page of ['dim','organizer','optimizer','dimloadouts','vendors','collections','progress','feed','settings']){app.go(page);assert(document.querySelector('iframe')?.src.includes('/engine/#/'),page+' native route');}
+  for(const page of ['organizer','optimizer','vendors','collections','progress','feed','settings','armory','activities','wishlist','help']){app.go(page);assert(!document.querySelector('iframe')&&document.querySelector('h1'),page+' renders inside Little Light');}
   app.go('inventory');set('groupSelect','board');assert(document.documentElement.scrollWidth<=innerWidth,'board scroll contained inside page');
   return {passed:checks.length,checks};
  }finally{app.replaceState(original);app.go('inventory');}

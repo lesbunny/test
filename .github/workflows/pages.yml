@@ -26,15 +26,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Build pinned DIM engine
-        run: |
-          npm install --global corepack
-          bash scripts/build-dim.sh
       - name: Validate browser app
         run: |
           node --check site/extension.js
           node --check site/app.js
           node --check site/inventory-core.js
+          node --check site/native-core.js
+          node --check site/native-tools.js
           node --check site/tools.js
           node --check site/workspace-ui.js
           node --test tests/*.test.cjs

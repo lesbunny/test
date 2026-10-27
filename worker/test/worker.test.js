@@ -160,7 +160,7 @@ test("OAuth callback exchanges the code server-side and redirects tokens in the 
     assert.equal(target.origin + target.pathname, siteUrl);
     const params = new URLSearchParams(target.hash.slice(1));
     const encoded = params.get("bungie-auth");
-    assert.ok(encoded);
+    assert.ok(encoded, "OAuth callback redirect: " + target.href);
     const normalized = encoded.replace(/-/g, "+").replace(/_/g, "/");
     const payload = JSON.parse(Buffer.from(normalized + "=".repeat((4 - normalized.length % 4) % 4), "base64").toString("utf8"));
     assert.equal(payload.access_token, "access-test");

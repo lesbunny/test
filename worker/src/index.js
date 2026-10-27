@@ -64,13 +64,8 @@ async function readState(value, secret) {
   if (!valid) throw new Error("OAuth state signature did not match.");
   const decoded = JSON.parse(new TextDecoder().decode(fromB64url(parts[0])));
   if (!decoded || !decoded.expiresAt || Date.now() > Number(decoded.expiresAt)) throw new Error("OAuth state expired.");
-  if (decoded.returnTo !== envSiteUrlFromState(decoded.returnTo)) throw new Error("Invalid return URL.");
+  if (!decoded.returnTo || typeof decoded.returnTo !== "string") throw new Error("Invalid return URL.");
   return decoded;
-}
-
-// This intentionally accepts only the one configured Pages URL, not an arbitrary redirect origin.
-function envSiteUrlFromState(value) {
-  return value;
 }
 
 function requiredSecrets(env) {
@@ -173,7 +168,7 @@ async function handleRequest(request, env) {
   if (path === "/health" && method === "GET") {
     const cors = validateOrigin(request, env);
     if (!cors) return json({ error: "Origin is not allow-listed." }, 403);
-    return json({ ok: true, service: "Little Light Bungie Worker", oauthConfigured: Boolean(env.BUNGIE_CLIENT_ID && env.BUNGIE_CLIENT_SECRET), apiKeyConfigured: Boolean(env.BUNGIE_API_KEY) }, 200, cors);
+    return json({ ok: true, service: "Little Light Bungie Worker", oauthConfigured: Boolean(env.BUNGIE_CLIENT_ID && env.BUNGIE_CLIENT_SECRET), apiKeyConfigured: Boolean(env.BUNGIE_API_KEY), stateSecretConfigured: Boolean(env.STATE_SECRET && env.STATE_SECRET.length >= 32) }, 200, cors);
   }
 
   if (path === "/oauth/start" && method === "GET") {

@@ -602,6 +602,7 @@
     if(item.isPostmaster||item.bucket==='Postmaster')return {ok:false,reason:'Pull it from the Postmaster first'};
     if(!isGear(item))return {ok:false,reason:'Only weapons and armor can be staged'};
     if(item.equipped)return {ok:false,reason:'Equipped items are never staged'};
+    if(!normalizeTransferable(item))return {ok:false,reason:'Bungie reports this item cannot currently be transferred'};
     if(item.locked)return {ok:false,reason:'Locked in-game'};
     if(localProtected(item))return {ok:false,reason:'Protected or referenced by a loadout'};
     if(item.exotic)return {ok:false,reason:'Exotics are never staged'};
@@ -748,7 +749,7 @@
   }
   function safeToFuel(item) {
     if(live.rollStatus!=='ready')return false;
-    if(!item||!item.isLiveItem||item.owner!=='Vault'||item.isPostmaster||item.locked||item.exotic||localProtected(item)||isJunkListed(item))return false;
+    if(!item||!item.isLiveItem||item.owner!=='Vault'||item.isPostmaster||!normalizeTransferable(item)||item.locked||item.exotic||localProtected(item)||isJunkListed(item))return false;
     if(item.trackedKills!==null&&Number(item.trackedKills)>=500)return false;
     if(item.trackedKillsUnknown)return false;
     const roll=assessRoll(item);

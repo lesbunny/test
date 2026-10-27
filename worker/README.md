@@ -66,7 +66,7 @@ The setup modal checks `/health` first and warns if required secrets are missing
 
 ## Security / scope
 
-The Worker CORS allow-list is limited to `https://lesbunny.github.io`, and the `/api/` proxy allows only profile/inventory reads plus TransferItem, PullFromPostmaster, EquipItem and SetLockState. It does not expose arbitrary Bungie proxy paths. OAuth state is HMAC-signed and expires after 10 minutes.
+The Worker CORS allow-list is limited to `https://lesbunny.github.io`, and the `/api/` proxy allows only profile/inventory reads plus TransferItem, PullFromPostmaster, EquipItem and SetLockState. It does not expose arbitrary Bungie proxy paths. OAuth state is HMAC-signed, expires after 10 minutes, and is bound to the initiating browser with a matching Secure, HttpOnly, SameSite=Lax callback cookie.
 
 The API can move/equip/lock items and pull Postmaster gear. It does not expose an item-dismantle endpoint, so Little Light never dismantles items. You still confirm the Shard List yourself and dismantle in-game.
 

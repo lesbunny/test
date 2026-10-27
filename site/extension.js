@@ -1011,20 +1011,26 @@
       else if(item.owner===target.name&&String(item.characterId)===targetId){countsByBucket[bucket]++;}
       else if(item.owner!==target.name&&free>0&&!item.equipped&&!item.isPostmaster){stage.push({item,source:'Other'});countsByBucket[bucket]++;free--;}
     }
-    for(let i=0;i<stage.length;i++) {
-      const {item,source}=stage[i];
-      try {
-        if(source==='Other') {
-          await moveToVault(item);
-          item.owner='Vault';item.characterId='';
-          await sleep(180);
-        }
-        await moveFromVaultToCharacter(item,targetId);
-        item.owner=target.name;item.characterId=targetId;item.isPostmaster=false;
-        await sleep(160);
-      } catch(err) { LL.toast('Could not stage '+item.name+': '+(err&&err.message||String(err)),'error'); }
+    live.busy=true;live.operation='Staging confirmed shard items';updateHeader();LL.renderPage();
+    try {
+      for(let i=0;i<stage.length;i++) {
+        const {item,source}=stage[i];
+        try {
+          if(source==='Other') {
+            await moveToVault(item);
+            item.owner='Vault';item.characterId='';
+            await sleep(180);
+          }
+          await moveFromVaultToCharacter(item,targetId);
+          item.owner=target.name;item.characterId=targetId;item.isPostmaster=false;
+          await sleep(160);
+        } catch(err) { LL.toast('Could not stage '+item.name+': '+(err&&err.message||String(err)),'error'); }
+        setStatus('Staging shard items · '+(i+1)+'/'+stage.length);
+      }
+      await refreshProfileOnly();
+    } finally {
+      live.busy=false;live.operation='';updateHeader();LL.renderPage();
     }
-    await refreshProfileOnly();
     LL.toast('Dismantling session prepared. Double-check each item and dismantle only in-game.','success');
   }
   function prepareBulkMove() {
@@ -1428,9 +1434,7 @@
       if(!p)return;
       if(p.type==='move-all-vault')await executeMoveAll(p);
       else if(p.type==='prep-shard') {
-        live.busy=true;live.operation='Preparing shard session';updateHeader();
-        try{await executePrepShard(p);}catch(err){LL.toast('Could not prepare the Shard List: '+(err&&err.message||String(err)),'error');}
-        finally{live.busy=false;live.operation='';await refreshProfileOnly().catch(()=>{});updateHeader();LL.renderPage();}
+        try{await executePrepShard(p);}catch(err){live.busy=false;live.operation='';await refreshProfileOnly().catch(()=>{});updateHeader();LL.renderPage();LL.toast('Could not prepare the Shard List: '+(err&&err.message||String(err)),'error');}
       } else if(p.type==='stage-fuel')await executeStageFuel(p);
       else if(p.type==='max-power') {
         live.busy=true;live.operation='Equipping maximum-power set';updateHeader();

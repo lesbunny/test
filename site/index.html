@@ -419,6 +419,10 @@
     if(notify)toast(moved.length?`Moved ${moved.length} item${moved.length===1?'':'s'} to Vault in this workspace.`:'No safe moves were needed.','success');
     return moved.length;
   }
+  function farmAfterInventoryChange() {
+    if (!state.farm.enabled) return 0;
+    return applyFarmPlan(buildFarmPlan(), false);
+  }
   function startFarm() {
     state.farm.enabled=!state.farm.enabled;
     if(state.farm.enabled){const plan=buildFarmPlan();applyFarmPlan(plan,false);saveLog(`Farming Mode enabled for ${state.farm.owner} (local simulation)`);toast('Farming Mode enabled for this workspace. No Bungie items were moved.','success');}
@@ -429,22 +433,22 @@
   function equipLocally(item) {
     const owner=item.owner==='Vault'?(state.farm.owner||ownerNames().find(o=>o!=='Vault')||'Hunter'):item.owner;
     state.items.forEach(other=>{if(other.id!==item.id&&other.owner===owner&&other.bucket===item.bucket)other.equipped=false;});
-    item.owner=owner;item.equipped=!item.equipped;saveLog(`${item.equipped?'Equipped':'Unequipped'} ${item.name} on ${owner} (local)`);persist();openItem(item.id);toast(`${item.equipped?'Equipped':'Unequipped'} locally. No game change was made.`,'success');
+    item.owner=owner;item.equipped=!item.equipped;saveLog(`${item.equipped?'Equipped':'Unequipped'} ${item.name} on ${owner} (local)`);persist();farmAfterInventoryChange();openItem(item.id);toast(`${item.equipped?'Equipped':'Unequipped'} locally. No game change was made.`,'success');
   }
   function moveLocally(id) {
     const item=state.items.find(i=>i.id===id);if(!item)return;
     const target=$('#detailOwner')?.value||'Vault';if(target===item.owner){toast('That item is already there.');return;}
     if(target!=='Vault'&&item.owner!=='Vault')saveLog(`Moved ${item.name} ${item.owner} → Vault → ${target} (local smart-move preview)`);else saveLog(`Moved ${item.name} ${item.owner} → ${target} (local)`);
-    item.owner=target;item.equipped=false;persist();openItem(id);toast('Item location changed in the local workspace.','success');
+    item.owner=target;item.equipped=false;persist();farmAfterInventoryChange();openItem(id);toast('Item location changed in the local workspace.','success');
   }
   function saveItemDetails(id) {
     const item=state.items.find(i=>i.id===id);if(!item)return;
-    item.tags=$('#detailTags').value.split(',').map(t=>t.trim()).filter(Boolean);item.notes=$('#detailNotes').value.trim();const target=$('#detailOwner').value;if(target!==item.owner){const old=item.owner;item.owner=target;item.equipped=false;saveLog(`Moved ${item.name} ${old} → ${target} (local)`);}persist();openItem(id);toast('Tags and notes saved locally.','success');
+    item.tags=$('#detailTags').value.split(',').map(t=>t.trim()).filter(Boolean);item.notes=$('#detailNotes').value.trim();const target=$('#detailOwner').value;if(target!==item.owner){const old=item.owner;item.owner=target;item.equipped=false;saveLog(`Moved ${item.name} ${old} → ${target} (local)`);}persist();farmAfterInventoryChange();openItem(id);toast('Tags and notes saved locally.','success');
   }
   function applyLoadout(id) {
     const loadout=state.loadouts.find(l=>l.id===id);if(!loadout)return;const target=loadout.owner||state.farm.owner;let applied=0,missing=0;
     (loadout.itemIds||[]).forEach(itemId=>{const item=state.items.find(i=>i.id===itemId);if(!item){missing++;return;}const prior=item.owner;if(prior!==target&&prior!=='Vault'&&target!=='Vault')saveLog(`Loadout move ${item.name} ${prior} → Vault → ${target} (local)`);state.items.forEach(other=>{if(other.id!==item.id&&other.owner===target&&other.bucket===item.bucket)other.equipped=false;});item.owner=target;item.equipped=true;applied++;});
-    saveLog(`Applied loadout “${loadout.name}” to ${target} in local workspace`);persist();renderPage();toast(`Applied ${applied} items locally${missing?`; ${missing} item(s) missing`:''}. No live game changes were made.`,'success');
+    saveLog(`Applied loadout “${loadout.name}” to ${target} in local workspace`);persist();farmAfterInventoryChange();renderPage();toast(`Applied ${applied} items locally${missing?`; ${missing} item(s) missing`:''}. No live game changes were made.`,'success');
   }
   function inspectLoadout(id) {
     const l=state.loadouts.find(x=>x.id===id);if(!l)return;const items=(l.itemIds||[]).map(i=>state.items.find(x=>x.id===i)).filter(Boolean);
@@ -473,7 +477,7 @@
       case 'clear-compare':state.compareIds=[];persist();renderPage();break;
       case 'toggle-farm':startFarm();break;case 'farm-refresh':lastFarmPlan=buildFarmPlan();renderPage();toast(`Recalculated: ${lastFarmPlan.plan.length} safe local move(s).`);break;case 'farm-apply':{const p=buildFarmPlan();const n=applyFarmPlan(p);renderPage();}break;
       case 'save-loadout':showSaveLoadoutModal();break;case 'confirm-save-loadout':confirmSaveLoadout();break;case 'close-modal':closeModal();break;case 'delete-loadout':deleteLoadout(id);break;case 'view-loadout':inspectLoadout(id);break;case 'apply-loadout':if($('#modalScrim').hidden)applyLoadout(id);else{closeModal();applyLoadout(id);}break;
-      case 'protect-item':toggleProtection(id);break;case 'toggle-lock':{const item=state.items.find(i=>i.id===id);if(item){item.locked=!item.locked;saveLog(`${item.locked?'Locked':'Unlocked'} ${item.name} locally`);persist();openItem(id);toast(`${item.locked?'Locked':'Unlocked'} in the workspace only.`);}}break;
+      case 'protect-item':toggleProtection(id);break;case 'toggle-lock':{const item=state.items.find(i=>i.id===id);if(item){item.locked=!item.locked;saveLog(`${item.locked?'Locked':'Unlocked'} ${item.name} locally`);persist();farmAfterInventoryChange();openItem(id);toast(`${item.locked?'Locked':'Unlocked'} in the workspace only.`);}}break;
       case 'toggle-equip':{const item=state.items.find(i=>i.id===id);if(item)equipLocally(item);}break;case 'save-item-details':saveItemDetails(id);break;case 'move-item':moveLocally(id);break;case 'close-detail':closeDetail();break;
       case 'export-json':exportWorkspace();break;case 'export-csv':download('little-light-gear.csv',exportItemsCSV(),'text/csv;charset=utf-8');toast('Gear CSV downloaded.','success');break;case 'export-farm':exportFarmCSV();break;case 'download-sample':downloadSampleCSV();break;case 'reset-demo':resetDemo();break;
       case 'clear-workspace':if(confirm('Clear all local items, saved loadouts, notes and move history? This does not affect Destiny itself.')){state={...getDefaultState(),items:[],loadouts:[],demo:false,bannerDismissed:true};persist();renderPage();toast('Local workspace cleared.');}break;

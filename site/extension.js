@@ -259,19 +259,13 @@
     history.replaceState({},document.title,url.pathname+url.search+url.hash);
   }
   async function accessToken() {
-    let t=tokenState();
+    const t=tokenState();
     if(!t||!t.access_token)throw new Error('Your Bungie session has expired. Connect again.');
     if(Number(t.expires_at||0)>Date.now()+90000)return t.access_token;
-    if(!t.refresh_token)throw new Error('Your Bungie access token expired. Connect again to refresh it.');
-    const body=new URLSearchParams({grant_type:'refresh_token',refresh_token:t.refresh_token,client_id:config.clientId||''});
-    const response=await fetch('https://www.bungie.net/Platform/App/OAuth/token/',{
-      method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString()
-    });
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok||!data.access_token)throw new Error(data.error_description||data.Message||'Bungie token refresh failed. Sign in again.');
-    t={access_token:data.access_token,refresh_token:data.refresh_token||t.refresh_token,expires_at:Date.now()+Number(data.expires_in||3600)*1000,refresh_expires_at:Date.now()+Number(data.refresh_expires_in||86400)*1000};
-    saveToken(t);
-    return t.access_token;
+    // Bungie Public OAuth clients do not receive refresh tokens. Never attempt to refresh with an absent token.
+    dropToken();
+    live.connected=false;
+    throw new Error('Your Bungie sign-in expired. Reconnect to continue; public Bungie clients do not receive refresh tokens.');
   }
   async function bungieRequest(path,options) {
     options=options||{};
@@ -583,6 +577,7 @@
   function shardItemById(id) { return getItem(id); }
   function safeToStage(item) {
     if(!item||!item.isLiveItem)return {ok:false,reason:'Not a live Bungie item'};
+    if(live.rollStatus!=='ready')return {ok:false,reason:'Load community roll data before staging items'};
     if(item.isPostmaster||item.bucket==='Postmaster')return {ok:false,reason:'Pull it from the Postmaster first'};
     if(!isGear(item))return {ok:false,reason:'Only weapons and armor can be staged'};
     if(item.equipped)return {ok:false,reason:'Equipped items are never staged'};
@@ -629,7 +624,7 @@
     const f=buildFuelPlan();
     const active=getSelectedCharacterName();
     return renderHeading('BULK INVENTORY TOOLS','Bulk actions','Move gear safely, prepare a dismantling session, or stage infusion fuel. Each action previews its scope before it changes live inventory.',
-      btn('refresh-bungie','↻ Refresh inventory',!isConnected(),'button-quiet button-small'))+
+      btn('load-rolls',live.rollStatus==='ready'?'✓ Roll data loaded':'Load community rolls',live.rollStatus==='loading','button-quiet button-small')+' '+btn('refresh-bungie','↻ Refresh inventory',!isConnected(),'button-quiet button-small'))+
       connectionNotice()+
       '<div class="stat-grid"><div class="stat-card"><div class="stat-label">Vault slots free</div><div class="stat-value">'+fmt(vaultFree())+'</div><div class="stat-foot">'+fmt(vaultCount())+' of '+fmt(VAULT_CAPACITY)+' used · verify in game</div></div><div class="stat-card"><div class="stat-label">Move-to-vault candidates</div><div class="stat-value">'+fmt(move.total)+'</div><div class="stat-foot">Unequipped weapons and armor on characters</div></div><div class="stat-card"><div class="stat-label">Confirmed shard list</div><div class="stat-value">'+fmt(shards.length)+'</div><div class="stat-foot">'+fmt(stageable.length)+' currently pass staging checks</div></div><div class="stat-card"><div class="stat-label">Infusion fuel</div><div class="stat-value">'+fmt(f.total)+'</div><div class="stat-foot">Vault items above your equipped power</div></div></div>'+
       '<div class="ll-action-grid">'+
@@ -699,6 +694,7 @@
     return {rows,total:rows.reduce((a,r)=>a+r.count,0)};
   }
   function safeToFuel(item) {
+    if(live.rollStatus!=='ready')return false;
     if(!item||!item.isLiveItem||item.owner!=='Vault'||item.isPostmaster||item.locked||item.exotic||localProtected(item)||isJunkListed(item))return false;
     if(item.trackedKills!==null&&Number(item.trackedKills)>=500)return false;
     if(item.trackedKillsUnknown)return false;
@@ -1013,6 +1009,7 @@
       try {
         if(source==='Other') {
           await moveToVault(item);
+          item.owner='Vault';item.characterId='';
           await sleep(180);
         }
         await moveFromVaultToCharacter(item,targetId);
@@ -1112,7 +1109,11 @@
     if(!classCanUse(item,char))throw new Error('This armor class does not match the selected Guardian.');
     if(item.owner!==char.name||String(item.characterId)!==String(char.characterId)) {
       if(item.equipped)throw new Error('An item equipped on another Guardian cannot be moved.');
-      if(item.owner!=='Vault'){await moveToVault(item);await sleep(180);}
+      if(item.owner!=='Vault'){
+        await moveToVault(item);
+        item.owner='Vault';item.characterId='';
+        await sleep(180);
+      }
       if(characterBucketItems(char.characterId,bucketFor(item)).length>=CHARACTER_BUCKET_CAPACITY) {
         const spare=characterBucketItems(char.characterId,bucketFor(item)).filter(i=>!i.equipped&&!localProtected(i)&&!i.locked&&!isJunkListed(i)).sort((a,b)=>Number(a.power)-Number(b.power))[0];
         if(!spare)throw new Error('No safe open slot is available in the selected Guardian’s bucket.');
@@ -1135,7 +1136,11 @@
       const targetChar=live.characters.find(c=>c.name===target);
       if(!targetChar)throw new Error('Choose a valid Guardian or Vault location.');
       if(item.owner===targetChar.name&&String(item.characterId)===String(targetChar.characterId))return;
-      if(item.owner!=='Vault') {await moveToVault(item);await sleep(180);}
+      if(item.owner!=='Vault') {
+        await moveToVault(item);
+        item.owner='Vault';item.characterId='';
+        await sleep(180);
+      }
       if(characterBucketItems(targetChar.characterId,bucketFor(item)).length>=CHARACTER_BUCKET_CAPACITY)throw new Error(targetChar.name+' has no free '+bucketFor(item)+' slot.');
       await moveFromVaultToCharacter(item,targetChar.characterId);
     }
@@ -1207,19 +1212,27 @@
     return {map,count};
   }
   async function fetchTextCached(url) {
+    const timestampKey='little-light-roll-refresh:'+url;
+    const maxAge=6*60*60*1000;
     if(window.caches) {
       try {
         const cache=await caches.open(CACHE_NAME);
         const cached=await cache.match(url);
-        if(cached)return await cached.text();
+        const cachedAt=Number(localStorage.getItem(timestampKey)||0);
+        if(cached&&cachedAt&&Date.now()-cachedAt<maxAge)return await cached.text();
       } catch (_) {}
     }
-    const response=await fetch(url);
+    const response=await fetch(url,{cache:'no-cache'});
     if(!response.ok)throw new Error('Community roll source returned HTTP '+response.status+'.');
+    const text=await response.text();
     if(window.caches) {
-      try {const cache=await caches.open(CACHE_NAME);await cache.put(url,response.clone());} catch (_) {}
+      try {
+        const cache=await caches.open(CACHE_NAME);
+        await cache.put(url,new Response(text,{headers:{'Content-Type':'text/plain;charset=utf-8'}}));
+        localStorage.setItem(timestampKey,String(Date.now()));
+      } catch (_) {}
     }
-    return await response.text();
+    return text;
   }
   async function loadCommunityRolls() {
     if(live.rollStatus==='loading')return;
@@ -1438,9 +1451,6 @@
       if(!item)return;
       await saveDetailLive(item);
     },
-    'inventory-filter':async(button)=>{
-      if(!button)return;
-    },
     'cleaner-filter':async(button)=>{
       live.cleanerFilter=button.dataset.value||'all';LL.renderPage();
     },
@@ -1453,6 +1463,8 @@
     const action=button.dataset.action;
     if(action==='open-item') { setTimeout(injectItemInspectorActions,0); return; }
     if(action==='toggle-compare')return;
+    // Allow the original local-workspace controls to work when the item is not connected live.
+    if(['toggle-lock','toggle-equip','move-item','save-item-details'].includes(action) && !syncConnectedItemAction(button.dataset.id))return;
     const handler=handlers[action];
     if(!handler)return;
     event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
@@ -1479,10 +1491,12 @@
   window.LittleLightExtension={handlesPage,renderPage,afterRender};
   updateHeader();
   LL.renderPage();
+  const initialOAuthUrl=new URL(location.href);
+  const hasOAuthCallback=initialOAuthUrl.searchParams.has('code')||initialOAuthUrl.searchParams.has('error');
   handleOAuthCallback().catch(err=>{
     LL.toast('Bungie sign-in failed: '+(err&&err.message||String(err)),'error');
   });
-  if(tokenState()&&config.apiKey&&config.clientId&&config.membershipId) {
+  if(!hasOAuthCallback&&tokenState()&&config.apiKey&&config.clientId&&config.membershipId) {
     setStatus('Restoring Bungie session…');
     findMemberships().catch(err=>{
       live.connected=false;live.error=err&&err.message||String(err);updateHeader();

@@ -231,6 +231,7 @@
     const url=new URL('https://www.bungie.net/en/oauth/authorize');
     url.searchParams.set('client_id',config.clientId);
     url.searchParams.set('response_type','code');
+    url.searchParams.set('redirect_uri',redirectUri());
     url.searchParams.set('state',stateValue);
     location.assign(url.toString());
   }
@@ -276,7 +277,7 @@
       const body=new URLSearchParams({grant_type:'authorization_code',code,client_id:config.clientId,redirect_uri:redirectUri()});
       const response=await fetch(API+'/App/OAuth/token/',{
         method:'POST',
-        headers:{'Content-Type':'application/x-www-form-urlencoded',Accept:'application/json'},
+        headers:{'Content-Type':'application/x-www-form-urlencoded',Accept:'application/json','X-API-Key':config.apiKey},
         body:body.toString(),cache:'no-store'
       });
       const data=await response.json().catch(()=>({}));

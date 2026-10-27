@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17141f">
+  <meta name="description" content="A lavender-themed Destiny 2 inventory companion for local inventory planning, Farming Mode planning, loadouts, comparisons and vault review.">
+  <title>Little Light — Destiny Companion</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#dashboard" aria-label="Little Light home">
+        <span class="brand-mark">✦</span>
+        <span><strong>little light</strong><small>DESTINY COMPANION</small></span>
+      </a>
+      <div class="profile-pill"><span class="avatar">✧</span><span class="profile-name"><b id="profileLabel">Local workspace</b><small id="profileSub">Sample inventory</small></span><span class="status-dot"></span></div>
+      <div class="nav-label">GEAR</div>
+      <nav class="nav-list" aria-label="Main navigation">
+        <button class="nav-item active" data-page="dashboard"><span class="nav-icon">◈</span><span>Overview</span></button>
+        <button class="nav-item" data-page="inventory"><span class="nav-icon">▦</span><span>Inventory</span><span class="nav-count" id="inventoryNavCount">—</span></button>
+        <button class="nav-item" data-page="farming"><span class="nav-icon">♧</span><span>Farming Mode</span><span class="nav-live" id="farmNavDot"></span></button>
+        <button class="nav-item" data-page="loadouts"><span class="nav-icon">⟐</span><span>Loadouts</span><span class="nav-count" id="loadoutNavCount">0</span></button>
+        <button class="nav-item" data-page="compare"><span class="nav-icon">⇄</span><span>Compare</span></button>
+        <div class="nav-label nav-label-gap">VAULT</div>
+        <button class="nav-item" data-page="cleaner"><span class="nav-icon">⌁</span><span>Vault review</span></button>
+        <button class="nav-item" data-page="data"><span class="nav-icon">↥</span><span>Import & export</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="local-note"><span class="tiny-lock">▣</span><span><b>Local-first</b><small>Your data stays in this browser.</small></span></div>
+        <a class="external-link" href="https://destinyitemmanager.com/" target="_blank" rel="noreferrer">Open DIM <span>↗</span></a>
+        <a class="external-link" href="https://shardorkeep.com/" target="_blank" rel="noreferrer">Open Shard or Keep <span>↗</span></a>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <button class="icon-button menu-toggle" id="menuToggle" aria-label="Toggle navigation">☰</button>
+        <div class="breadcrumbs"><span>Little Light</span><span class="crumb-slash">/</span><b id="pageCrumb">Overview</b></div>
+        <div class="topbar-actions">
+          <div class="source-status"><span class="status-dot"></span><span id="sourceStatus">Sample data</span></div>
+          <button class="button button-quiet button-small" data-action="go-data">Import data</button>
+          <button class="icon-button" data-action="help" aria-label="About this app">?</button>
+        </div>
+      </header>
+      <div id="sampleBanner" class="sample-banner"><span class="banner-icon">✦</span><span><b>You’re viewing sample gear.</b> Import your inventory export to use your own items. No Bungie account is connected.</span><button data-action="dismiss-banner" aria-label="Dismiss sample notice">×</button></div>
+      <section class="page-content" id="pageContent" aria-live="polite"></section>
+      <footer class="footer"><span>Little Light is an independent community project, not affiliated with Bungie, DIM, or Shard or Keep.</span><span><a href="https://github.com/lesbunny/test" target="_blank" rel="noreferrer">Source on GitHub ↗</a></span></footer>
+    </main>
+  </div>
+  <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+  <div class="modal-scrim" id="modalScrim" hidden><section class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"></section></div>
+  <script src="./app.js" defer></script>
+</body>
+</html>

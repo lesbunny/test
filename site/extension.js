@@ -1554,7 +1554,8 @@
   }
 
   const handlers = {
-    'connect-bungie':async()=>{if(isConnected())openConnectModal();else openConnectModal();},
+    'connect-bungie':async()=>{openConnectModal();},
+    'change-worker-url':async()=>openConnectModal('Update the Cloudflare Worker base URL.',true),
     'save-bungie-settings':saveSettingsAndConnect,
     'choose-membership':chooseMembership,
     'refresh-bungie':handleRefresh,
@@ -1656,11 +1657,12 @@
   updateHeader();
   LL.renderPage();
   const initialOAuthUrl=new URL(location.href);
-  const hasOAuthCallback=initialOAuthUrl.searchParams.has('code')||initialOAuthUrl.searchParams.has('error');
+  const initialHashParams=new URLSearchParams(initialOAuthUrl.hash.startsWith('#')?initialOAuthUrl.hash.slice(1):initialOAuthUrl.hash);
+  const hasOAuthCallback=initialOAuthUrl.searchParams.has('code')||initialOAuthUrl.searchParams.has('error')||initialHashParams.has('bungie-auth')||initialHashParams.has('bungie-auth-error');
   handleOAuthCallback().catch(err=>{
     LL.toast('Bungie sign-in failed: '+(err&&err.message||String(err)),'error');
   });
-  if(!hasOAuthCallback&&tokenState()&&config.apiKey&&config.clientId&&config.membershipId) {
+  if(!hasOAuthCallback&&tokenState()&&config.workerUrl&&config.membershipId) {
     setStatus('Restoring Bungie session…');
     findMemberships().catch(err=>{
       live.connected=false;live.error=err&&err.message||String(err);updateHeader();

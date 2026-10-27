@@ -359,8 +359,8 @@
     const base='https://www.bungie.net';
     const makeUrl=p=>/^https?:/i.test(p)?p:new URL(p,base).href;
     const itemUrl=makeUrl(itemDefinitionPath);
-    const statPath=paths.DestinyStatDefinition||worldPaths.DestinyStatDefinition;
-    const bucketPath=paths.DestinyInventoryBucketDefinition||worldPaths.DestinyInventoryBucketDefinition;
+    const statPath=worldPaths.DestinyStatDefinition||componentPaths.DestinyStatDefinition;
+    const bucketPath=worldPaths.DestinyInventoryBucketDefinition||componentPaths.DestinyInventoryBucketDefinition;
     const statUrl=statPath?makeUrl(statPath):null;
     const bucketUrl=bucketPath?makeUrl(bucketPath):null;
     const results=await Promise.all([

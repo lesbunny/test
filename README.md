@@ -4,7 +4,7 @@ A dark-lavender Destiny 2 inventory companion hosted on GitHub Pages. It is an i
 
 ## Live features
 
-- **Bungie connection:** browser-based OAuth for a Public Bungie API application, live profile/character/inventory sync, manifest-based item names/icons/perks and local tagging.
+- **Bungie connection:** OAuth through the included Cloudflare Worker, live profile/character/inventory sync, manifest-based item names/icons/perks and local tagging. You must deploy the Worker and add your own Bungie credentials as Cloudflare secrets.
 - **Real inventory actions:** preview-confirmed transfers to/from the Vault, equip, lock/unlock and pulling items from the Postmaster.
 - **Farming Mode:** watches the selected character's eligible gear buckets while the site stays open and attempts safe transfers to the Vault to maintain 1–9 empty slots per bucket. It does not dismantle items.
 - **Bulk actions:** move unequipped character weapons/armor to Vault, prepare a confirmed Shard List dismantling session, stage eligible infusion fuel, and review/apply a maximum-power set.
@@ -16,16 +16,17 @@ A dark-lavender Destiny 2 inventory companion hosted on GitHub Pages. It is an i
 
 ## Connect your own Bungie account
 
-A public GitHub Pages app cannot safely hold a confidential OAuth client secret. You must register your own Public client in the [Bungie Application Portal](https://www.bungie.net/en/Application) and configure its allowed origin/callback. Little Light never asks for your Bungie password and does not ask you to paste a client secret.
+The Pages site is static, and Bungie's authorization-code exchange requires a client secret. The app therefore uses the included **Cloudflare Worker** as a small server-side OAuth/API bridge. The secret and API key stay in your own Cloudflare account; they are not included in the public repo or entered into the Pages UI.
 
-1. Create a **Public** app in the Bungie Application Portal.
-2. Select scopes **ReadBasicUserProfile**, **ReadDestinyInventoryAndVault**, and **MoveEquipDestinyItems**. Bungie's portal fixes scopes on the registered app.
-3. Set the app **Origin** to `https://lesbunny.github.io`.
-4. Set the registered **Redirect URL** to `https://lesbunny.github.io/test/` exactly, including the trailing slash.
-5. On the site, click **Connect Bungie**, paste the API Key and Public OAuth Client ID from your app, then choose **Save & sign in to Bungie**.
-6. If Bungie rejects the authorization-code exchange, recheck the app's client type, scope and exact callback. Public clients don't receive refresh tokens, so an expired browser session needs a new sign-in.
+Follow the detailed [Worker deployment guide](worker/README.md):
 
-The API Key and client ID are stored in this browser's local storage; the OAuth access token is kept in session storage. They are not written to this repository. Don't use a Confidential app for a public static site and never commit secrets.
+1. Deploy `worker/` to your own Cloudflare Workers account.
+2. Add `BUNGIE_API_KEY`, `BUNGIE_CLIENT_ID`, `BUNGIE_CLIENT_SECRET`, and a random `STATE_SECRET` as **Cloudflare Worker secrets**.
+3. Register a Bungie application that supplies a client secret. Enable **ReadBasicUserProfile**, **ReadDestinyInventoryAndVault**, and **MoveEquipDestinyItems**.
+4. Set the Bungie application's **Origin** to `https://lesbunny.github.io` and its registered **Redirect URL** to your own Worker URL ending exactly in `/oauth/callback`.
+5. On [Little Light](https://lesbunny.github.io/test/), click **Connect Bungie**, enter only the Worker base URL, and choose **Save & sign in to Bungie**.
+
+The Pages app stores the Worker URL in browser local storage and OAuth tokens in session storage. The Worker signs OAuth state, restricts CORS to the Pages origin, and proxies only a short allow-list of required Destiny API routes. Do not commit API keys, client secrets, state secrets, or tokens.
 
 ## Destructive-action and data-safety limits
 
@@ -41,7 +42,7 @@ The API Key and client ID are stored in this browser's local storage; the OAuth 
 
 The Actions workflow deploys `site/` to GitHub Pages on pushes to `main`. JavaScript syntax checks run before upload.
 
-The site uses plain HTML, CSS and JavaScript; no package installation is required. For local development, serve `site/` over HTTP rather than opening `index.html` from a `file://` URL:
+The Pages site uses plain HTML, CSS and JavaScript. The separate `worker/` backend runs on Cloudflare Workers; see its README for `npm install`, `wrangler login`, `wrangler deploy` and secret setup. For local Pages development, serve `site/` over HTTP rather than opening `index.html` from a `file://` URL:
 
 ```bash
 python -m http.server 8000 --directory site

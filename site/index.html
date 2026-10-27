@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#141218">
+<title>Little Light — Destiny Companion</title>
+<style>
+:root{color-scheme:dark;--bg:#141218;--text:#e6e1e5;--lav:#d0bcff;--muted:#cac4d0;--panel:#211f26;font-family:system-ui,sans-serif}
+body{margin:0;background:var(--bg);color:var(--text);min-height:100vh;display:grid;place-items:center;padding:24px}
+.card{max-width:520px;background:var(--panel);border:1px solid #49454f;border-radius:16px;padding:28px;box-shadow:0 8px 32px #0006}
+h1{margin:0 0 8px;font-size:1.5rem;color:var(--lav)}
+p{color:var(--muted);line-height:1.55;margin:12px 0}
+code{background:#36343b;padding:2px 6px;border-radius:6px;font-size:13px}
+a.button{display:inline-block;margin-top:12px;padding:12px 20px;border-radius:999px;background:var(--lav);color:#381e72;font-weight:700;text-decoration:none}
+.steps{text-align:left;margin:16px 0;padding-left:18px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Little Light</h1>
+<p>A tooling error emptied the app files on <code>main</code> during an automated push. The last good commit is still in git history.</p>
+<p><b>Fast restore (run in your clone):</b></p>
+<ol class="steps">
+<li><code>git fetch origin</code></li>
+<li><code>git reset --hard 6ae99804fa08d75f1e9fedb1e9495aed13c7e620</code></li>
+<li><code>git push --force origin main</code></li>
+</ol>
+<p>After that, re-open this chat and ask to re-apply the Unknown-item + sorting + Material fixes (they are ready locally).</p>
+<p>Or open the last good build mirrored on jsDelivr (OAuth redirect may not match your Pages origin):</p>
+<a class="button" href="https://cdn.jsdelivr.net/gh/lesbunny/test@6ae99804fa08d75f1e9fedb1e9495aed13c7e620/site/index.html">Open last good build</a>
+</div>
+</body>
+</html>

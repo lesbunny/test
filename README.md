@@ -51,3 +51,35 @@ The GitHub Pages workflow publishes the `site/` directory and validates the brow
 - [DIM Inventory guide](https://github.com/DestinyItemManager/DIM/wiki/Inventory)
 - [DIM Wish Lists guide](https://github.com/DestinyItemManager/DIM/wiki/Wish-Lists)
 - [Community wishlist source repository](https://github.com/48klocs/dim-wish-list-sources)
+
+## Inventory refresh
+
+- **Item definitions:** named live items, icons, class restrictions, rarity, weapon stats and perk names come from Bungie's manifest. Missing definitions show an identifiable hash; use `is:unresolved` to find them. Both component and aggregated manifest formats are supported.
+- **Organization:** Destiny slot order; power, name, armor-stat and exotic-first sorts; location groups or globally sorted results; cards, compact tiles and list views. Display preferences survive reloads.
+- **Search:** quoted phrases, exclusions (`-is:locked`), `OR`, owner/type/bucket/tag/perk/rarity/notes/element filters, `is:duplicate`, `is:crafted`, power/kill/stat thresholds, and saved searches. Press `/` to focus search. Export just the matching results as CSV.
+- **Tags:** select individual items or all search results, tag them together, and undo the latest tag operation. A `junk` tag is only an annotation; it never confirms a Shard List operation.
+- **Comparisons:** weapons and armor, available stat columns, active perks, and item inspection.
+- **Loadouts:** save equipped gear, rename, duplicate, and inspect snapshots. Connected snapshots preview and equip weapons/armor on the selected Guardian with per-item error reporting. Offline snapshots apply locally. Gear equipped on another Guardian is not taken automatically.
+- **Armor builder:** class-aware weighted stat selection across five slots, optional required exotic, at most one exotic, and save-to-loadout. The chosen stat counts three times. Uses reported stats without simulating mods, fragments, artifact perks, or set bonuses. Imported gear without class metadata needs manual checking.
+- **Maximum power:** optimizes total displayed equipment power with at most one exotic weapon and one exotic armor piece, preferring currently equipped items on ties.
+- **Appearance:** Material-inspired light/dark themes, mobile layouts, keyboard item inspection, focus containment in dialogs, and reduced-motion support.
+
+### Run and validate locally
+
+Requires Python 3 to serve and Node 18+ for tests (verified with Node 24). No package installation or build step is needed.
+
+```sh
+python3 -m http.server 3000 --directory site
+node --check site/app.js
+node --check site/extension.js
+node --check site/inventory-core.js
+node --test tests/*.test.cjs
+```
+
+Open `http://localhost:3000`. In a CodeRabbit workspace, register that service before using the shared `coderabbit-agent-browser`. `tests/browser-smoke.js` can be evaluated in that browser on a **sample workspace**; it checks navigation, filtering, bulk tags/undo, comparisons, armor builds, loadouts, themes and inspector controls. It restores the initial saved workspace afterward.
+
+Source layout: `app.js` owns local workspace/UI behavior, `inventory-core.js` owns deterministic search/sort/planning rules, and `extension.js` owns Bungie integration. Styles are in `app.css`, `extension.css`, and the final `material.css` theme layer.
+
+### Current boundaries
+
+This is an expanded companion, not full DIM or Shard or Keep feature parity. Subclass/mod/socket editing, a complete build optimizer, crafting/collections tracking, vendor/activity planning, cloud synchronization, drag-and-drop transfers, and custom wishlist uploads remain unimplemented. Live OAuth, actual inventory writes, throttling and capacity behavior still require verification with a Bungie Public application and account. Automated tests use synthetic responses and do not establish live-account readiness. The app never dismantles items; dismantling remains in-game.

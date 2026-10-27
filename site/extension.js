@@ -589,7 +589,6 @@
     if(item.trackedKillsUnknown)return {ok:false,reason:'Tracked kills could not be verified'};
     const roll=assessRoll(item);
     if(roll.status==='good')return {ok:false,reason:'Matches a community wishlist roll'};
-    if(roll.status==='avoid')return {ok:false,reason:'Choosy wishlist flags this exact roll'};
     if(isArmor(item)&&totalStats(item)>=65)return {ok:false,reason:'High-stat armor (65+) is protected from staging'};
     return {ok:true,reason:'No protected roll or safety flag found'};
   }
@@ -700,7 +699,7 @@
     if(item.trackedKills!==null&&Number(item.trackedKills)>=500)return false;
     if(item.trackedKillsUnknown)return false;
     const roll=assessRoll(item);
-    if(roll.status==='good'||roll.status==='avoid')return false;
+    if(roll.status==='good')return false;
     if(isArmor(item)&&totalStats(item)>=65)return false;
     return true;
   }
@@ -1179,7 +1178,7 @@
     const good=matchWishlist(live.goodRolls.get(hash)||[],item);
     if(good)return {status:'good',label:'Community wishlist match',notes:good.notes||'Matches a curated community weapon roll.',source:'voltron.txt'};
     const avoid=matchWishlist(live.choosyRolls.get(hash)||[],item);
-    if(avoid)return {status:'avoid',label:'Choosy list flags roll',notes:avoid.notes||'This exact roll appears in the community’s more opinionated avoid list.',source:'choosy_voltron.txt'};
+    if(avoid)return {status:'avoid',label:'Choosy trash candidate',notes:avoid.notes||'This roll is in choosy_voltron.txt but not the default keeper list; the source describes these additional entries as opinionated trash rolls.',source:'choosy_voltron.txt'};
     if(live.goodRolls.has(hash)||live.choosyRolls.has(hash))return {status:'known',label:'Community rolls exist; current roll not matched',notes:'A roll for this item exists in the source list, but the active perks were not an exact match.'};
     return {status:live.rollStatus==='ready'?'none':'unknown',label:live.rollStatus==='ready'?'No matching wishlist roll':'Roll data not loaded',notes:live.rollStatus==='ready'?'No exact match was found in these community files. This does not prove an item is bad.':'Load community roll data before relying on wishlist-based safety checks.'};
   }
@@ -1278,7 +1277,7 @@
     const r=assessRoll(item);
     const cls=r.status==='good'?'good':r.status==='avoid'?'avoid':r.status==='known'?'known':'';
     if(!cls)return '';
-    return '<span class="ll-roll-badge '+cls+'" title="'+h(r.notes)+'">'+(r.status==='good'?'✓ Wishlist':r.status==='avoid'?'⚠ Review roll':'◇ Rolls available')+'</span>';
+    return '<span class="ll-roll-badge '+cls+'" title="'+h(r.notes)+'">'+(r.status==='good'?'✓ Wishlist':r.status==='avoid'?'⚠ Trash candidate':'◇ Rolls available')+'</span>';
   }
   function renderCleaner() {
     const items=state().items.filter(i=>i.owner==='Vault'&&!i.isPostmaster&&isGear(i));
@@ -1288,7 +1287,7 @@
       let reason='No matching roll found; manual review only';
       let kind='Review';
       if(roll.status==='good'){reason=roll.notes||'Matches a curated community wishlist roll';kind='Community keeper';}
-      else if(roll.status==='avoid'){reason=roll.notes||'Choosy wishlist flags this exact roll';kind='Review roll';}
+      else if(roll.status==='avoid'){reason=roll.notes||'Choosy wishlist marks this as a trash-roll candidate';kind='Trash candidate';}
       else if(isArmor(item)&&totalStats(item)>=65){reason='High-stat armor ('+totalStats(item)+' total)';kind='High-stat keeper';}
       else if(item.locked||localProtected(item)){reason='Locked, tagged or loadout-protected';kind='Protected';}
       else if(item.exotic){reason='Exotic items need manual review';kind='Exotic';}
@@ -1316,9 +1315,9 @@
       btn('load-rolls',live.rollStatus==='ready'?'↻ Refresh roll lists':'Load community roll data',live.rollStatus==='loading','button-quiet button-small'))+
       connectionNotice()+
       '<div class="ll-roll-source-state '+(live.rollStatus==='ready'?'ready':'')+'"><span class="status-dot"></span><div><b>'+(live.rollStatus==='ready'?'Community roll lists loaded':'Community roll lists '+(live.rollStatus==='loading'?'loading':'not loaded'))+'</b><small>'+(live.rollStatus==='ready'?fmt(live.rollStats.good)+' curated + '+fmt(live.rollStats.choosy)+' choosy entries · sourced from 48klocs/DIM wishlist files':h(live.rollError||'Load the community wishlists before relying on roll matching.'))+'</small></div><a href="https://github.com/48klocs/dim-wish-list-sources" target="_blank" rel="noreferrer">Source ↗</a></div>'+
-      '<div class="stat-grid"><div class="stat-card"><div class="stat-label">Community keepers</div><div class="stat-value">'+fmt(goodCount)+'</div><div class="stat-foot">Exact active-perk wishlist matches</div></div><div class="stat-card"><div class="stat-label">Rolls flagged to review</div><div class="stat-value">'+fmt(avoidCount)+'</div><div class="stat-foot">Matches the choosy list, not auto-junk</div></div><div class="stat-card"><div class="stat-label">High-stat armor</div><div class="stat-value">'+fmt(highCount)+'</div><div class="stat-foot">65+ total stat points</div></div><div class="stat-card"><div class="stat-label">Can confirm as junk</div><div class="stat-value">'+fmt(shardable)+'</div><div class="stat-foot">Still requires your explicit confirmation</div></div></div>'+
+      '<div class="stat-grid"><div class="stat-card"><div class="stat-label">Community keepers</div><div class="stat-value">'+fmt(goodCount)+'</div><div class="stat-foot">Exact active-perk wishlist matches</div></div><div class="stat-card"><div class="stat-label">Choosy trash candidates</div><div class="stat-value">'+fmt(avoidCount)+'</div><div class="stat-foot">Opinionated trash-roll matches; still review</div></div><div class="stat-card"><div class="stat-label">High-stat armor</div><div class="stat-value">'+fmt(highCount)+'</div><div class="stat-foot">65+ total stat points</div></div><div class="stat-card"><div class="stat-label">Can confirm as junk</div><div class="stat-value">'+fmt(shardable)+'</div><div class="stat-foot">Still requires your explicit confirmation</div></div></div>'+
       '<section class="panel"><div class="panel-head"><div><h2>Vault roll review</h2><p>“No wishlist match” does not mean a roll is bad. Check your own builds before confirming junk.</p></div><button class="button button-quiet button-small" data-action="go-shard">Open Shard List ('+(state().shardList||[]).length+')</button></div>'+
-      '<div class="filter-chip-row">'+[['all','All vault gear'],['good','Wishlist keepers'],['avoid','Choosy flags'],['duplicates','Duplicate rolls'],['highstats','High-stat armor'],['shardable','Shard-list eligible']].map(([key,label])=>'<button class="filter-chip '+(mode===key?'active':'')+'" data-action="cleaner-filter" data-value="'+key+'">'+label+'</button>').join('')+'</div>'+
+      '<div class="filter-chip-row">'+[['all','All vault gear'],['good','Wishlist keepers'],['avoid','Choosy trash candidates'],['duplicates','Duplicate rolls'],['highstats','High-stat armor'],['shardable','Shard-list eligible']].map(([key,label])=>'<button class="filter-chip '+(mode===key?'active':'')+'" data-action="cleaner-filter" data-value="'+key+'">'+label+'</button>').join('')+'</div>'+
       '<div class="table-wrap">'+(rows?'<table class="data-table"><thead><tr><th>Item</th><th>Assessment</th><th>Protection</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table>':'<div class="empty-state"><strong>No vault items match this view.</strong><br>Connect Bungie, load your inventory, or change the review filter.</div>')+'</div></section>'+
       '<div class="ll-bottom-disclaimer">Community wishlists recommend specific weapon rolls; they are not an exhaustive authoritative list of every useful roll, and they do not replace your preferences. Armor quality here uses a simple 65+ total-stat guard, not a full armor optimizer.</div>';
   }

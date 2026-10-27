@@ -661,6 +661,35 @@
         '<section class="panel ll-action-card"><div class="ll-action-icon">✦</div><div class="eyebrow">EQUIP OPTIMIZER</div><h2>Equip maximum power</h2><p>Finds the highest-power eligible item in each supported equipment slot, brings it to your selected Guardian if needed, then equips the set. Items currently equipped on another Guardian are left alone.</p><div class="ll-action-summary"><b>8 gear slots</b><span>'+h(active)+' selected</span></div>'+
           btn('go-max-power','Review maximum-power set',!isConnected(),'ll-action-button')+'</section>'+
       '</div>'+
+      '<section class="panel ll-fuel-diagnostics"><div class="panel-head"><div><h2>Infusion fuel by slot</h2><p>Each line compares the best safe Vault candidate against the selected Guardian’s equipped piece. Nothing stages unless you confirm the bulk action.</p></div></div>'+
+      '<div class="ll-fuel-list">'+f.rows.map(r=>{
+        let title='',detail='',tone='neutral',mark='·';
+        if(!isConnected()) {title='Connect Bungie for live gear';detail='The fuel planner only stages items from a live Vault inventory.';}
+        else if(live.rollStatus!=='ready') {title='Load community roll data first';detail='Fuel staging stays disabled until the curated keeper list and trash-candidate list are available.';tone='warn';mark='!';}
+        else if(r.count) {
+          title=r.bucket+' — '+r.count+' piece'+(r.count===1?'':'s')+' to stage, above equipped ✦ '+(r.current||'—');
+          detail=r.picked.map(i=>i.name+' · ✦ '+fmt(i.power)).join('  |  ');
+          if(r.blockedBySpace)detail+=' · '+r.blockedBySpace+' additional candidate(s) do not fit in this Guardian’s current '+r.bucket+' inventory.';
+          tone='good';mark='✓';
+        } else if(r.candidates.length&&r.space===0) {
+          title=r.bucket+' — safe upgrades exist, but the character bucket has no free slot';
+          detail='Highest candidate ✦ '+fmt(r.candidates[0].power)+' vs equipped ✦ '+(r.current||'—')+'. Free a slot before staging.';
+          tone='warn';mark='!';
+        } else if(r.bestBurnable&&r.current&&Number(r.bestBurnable.power)<=r.current) {
+          title=r.bucket+' — best burnable piece is ✦ '+fmt(r.bestBurnable.power)+', not above equipped ✦ '+fmt(r.current)+' — nothing will be staged';
+          detail=r.bestBurnable.name+' is the highest-power item that passed the safety checks in the Vault.';
+          tone='neutral';mark='—';
+        } else if(r.bestBurnable&&!r.current) {
+          title=r.bucket+' — best safe Vault piece is ✦ '+fmt(r.bestBurnable.power);
+          detail='No equipped item power was detected for comparison. Review the loadout before staging.';
+          tone='warn';mark='!';
+        } else {
+          title=r.bucket+' — no safe infusion-fuel candidate';
+          detail='No Vault item passed the transfer, lock, Exotic, roll, protection, kill-count and armor-stat checks for this slot.';
+          tone='neutral';mark='—';
+        }
+        return '<div class="ll-fuel-row"><span class="ll-fuel-mark '+tone+'">'+mark+'</span><div class="ll-fuel-copy"><b>'+h(title)+'</b><small>'+h(detail)+'</small></div></div>';
+      }).join('')+'</div></section>'+
       '<div class="panel ll-bottom-note"><b>Live actions are reversible only where the game supports it.</b><span>Transfers can be undone by moving gear again. The app does not dismantle, infuse, spend materials, or change mods in this version.</span></div>';
   }
 
@@ -705,12 +734,13 @@
       const worn=char?equippedItem(char.characterId,bucket):null;
       const current=Number(worn&&worn.power||0);
       const targetCount=char?characterBucketItems(char.characterId,bucket).length:0;
-      const candidates=state().items.filter(i=>i.owner==='Vault'&&!i.isPostmaster&&bucketFor(i)===bucket&&isGear(i)&&normalizeTransferable(i)&&!i.exotic&&!i.locked&&!localProtected(i)&&!isJunkListed(i)&&!i.equipped&&Number(i.power)>current&&safeToFuel(i))
+      const burnableCandidates=state().items.filter(i=>bucketFor(i)===bucket&&safeToFuel(i))
         .sort((a,b)=>Number(b.power)-Number(a.power));
+      const candidates=burnableCandidates.filter(i=>Number(i.power)>current);
       const picked=candidates.slice(0,2);
       const space=Math.max(0,CHARACTER_BUCKET_CAPACITY-targetCount);
       const selected=picked.slice(0,space);
-      rows.push({bucket,current,targetCount,candidates,picked:selected,count:selected.length,blockedBySpace:Math.max(0,picked.length-selected.length)});
+      rows.push({bucket,current,targetCount,space,burnableCandidates,bestBurnable:burnableCandidates[0]||null,candidates,picked:selected,count:selected.length,blockedBySpace:Math.max(0,picked.length-selected.length)});
     }
     return {rows,total:rows.reduce((a,r)=>a+r.count,0)};
   }

@@ -107,6 +107,29 @@ test("OAuth start validates the return URL and signs state", async () => {
   assert.equal(location.searchParams.get("client_id"), env.BUNGIE_CLIENT_ID);
   assert.equal(location.searchParams.get("response_type"), "code");
   assert.ok(location.searchParams.get("state"));
+  const cookie = response.headers.get("Set-Cookie") || "";
+  assert.match(cookie, /^ll_oauth_state=[^;]+;/);
+  assert.match(cookie, /Path=\/oauth\/callback/);
+  assert.match(cookie, /Secure/);
+  assert.match(cookie, /HttpOnly/);
+  assert.match(cookie, /SameSite=Lax/);
+  assert.match(cookie, /Max-Age=600/);
+});
+
+test("OAuth callback rejects state not bound to the initiating browser", async () => {
+  const start = await worker.fetch(request("/oauth/start?return_to=" + encodeURIComponent(siteUrl)), env);
+  const state = new URL(start.headers.get("Location")).searchParams.get("state");
+  let tokenExchangeAttempted = false;
+  const callback = await withFetch(async () => {
+    tokenExchangeAttempted = true;
+    return Response.json({ access_token: "must-not-be-issued" });
+  }, () => worker.fetch(request("/oauth/callback?code=auth-code&state=" + encodeURIComponent(state)), env));
+  assert.equal(callback.status, 302);
+  assert.equal(tokenExchangeAttempted, false);
+  assert.match(callback.headers.get("Set-Cookie") || "", /Max-Age=0/);
+  const target = new URL(callback.headers.get("Location"));
+  assert.equal(target.origin + target.pathname, siteUrl);
+  assert.match(target.hash, /bungie-auth-error=/);
 });
 
 test("OAuth callback exchanges the code server-side and redirects tokens in the fragment", async () => {
@@ -127,7 +150,11 @@ test("OAuth callback exchanges the code server-side and redirects tokens in the 
   }, async () => {
     const start = await worker.fetch(request("/oauth/start?return_to=" + encodeURIComponent(siteUrl)), env);
     const state = new URL(start.headers.get("Location")).searchParams.get("state");
-    const callback = await worker.fetch(request("/oauth/callback?code=auth-code&state=" + encodeURIComponent(state)), env);
+    const stateCookie = String(start.headers.get("Set-Cookie") || "").split(";")[0];
+    assert.match(stateCookie, /^ll_oauth_state=/);
+    const callback = await worker.fetch(request("/oauth/callback?code=auth-code&state=" + encodeURIComponent(state), {
+      headers: { Cookie: stateCookie },
+    }), env);
     assert.equal(callback.status, 302);
     const target = new URL(callback.headers.get("Location"));
     assert.equal(target.origin + target.pathname, siteUrl);

@@ -946,19 +946,40 @@
   async function liveFarmCycle() {
     if(!isConnected()||!state().farm.enabled||live.farmCycleRunning||live.busy)return;
     live.farmCycleRunning=true;
+    let moved=0;
     try {
       await refreshProfileOnly();
       const plan=buildLiveFarmPlan();
-      if(plan.moves.length) {
-        const move=plan.moves[0];
-        setStatus('Farming Mode moving '+move.name+'…');
-        await moveToVault(move);
-        live.lastOperation='Farming Mode moved '+move.name+' to Vault';
+      for(let index=0;index<plan.moves.length;index++) {
+        if(!isConnected()||!state().farm.enabled)break;
+        // Refreshing replaces item objects. Resolve the latest item before each move and
+        // re-check the bucket threshold and safety flags to avoid acting on a stale plan.
+        const planned=plan.moves[index];
+        const item=getItem(planned.id);
+        const character=getSelectedCharacter();
+        if(!item||!character||String(item.characterId)!==String(character.characterId)||item.owner!==character.name)continue;
+        if(!safeToFarm(item)||vaultFree()<=0)continue;
+        const bucket=bucketFor(item);
+        const bucketItems=characterBucketItems(character.characterId,bucket);
+        const spaces=Math.max(1,Math.min(9,Number(state().farm.spaces||1)));
+        if(bucketItems.length<bucketCapacity(bucket)-spaces+1)continue;
+        setStatus('Farming Mode moving '+item.name+'…');
+        await moveToVault(item);
+        moved++;
+        live.lastOperation='Farming Mode moved '+item.name+' to Vault';
+        await sleep(180);
         await refreshProfileOnly();
-        LL.toast('Farming Mode moved '+move.name+' to the Vault.','success');
-      } else setStatus('Farming Mode watching inventory');
+      }
+      if(moved) {
+        LL.toast('Farming Mode moved '+moved+' item'+(moved===1?'':'s')+' to the Vault.','success');
+        setStatus('Farming Mode watching inventory');
+      } else setStatus(plan.blocked?'Farming Mode needs attention':'Farming Mode watching inventory');
     } catch(err) {
-      LL.toast('Farming Mode paused after an API error: '+(err&&err.message||String(err)),'error');
+      state().farm.enabled=false;
+      if(live.farmTimer)clearInterval(live.farmTimer);
+      live.farmTimer=null;
+      LL.persist();
+      LL.toast('Farming Mode stopped after an API error: '+(err&&err.message||String(err)),'error');
     } finally {
       live.farmCycleRunning=false;
       updateHeader();
@@ -1541,7 +1562,7 @@
     LL.toast('Disconnected from Bungie. The last synced inventory stays as a local snapshot.','success');
   }
   function showHelpModal() {
-    document.getElementById('modal').innerHTML='<div class="ll-modal-head"><span class="ll-eyebrow">LITTLE LIGHT</span><button class="icon-button" data-action="close-modal">×</button></div><h2 id="modalTitle">About the live connection</h2><p>Little Light uses Bungie’s documented OAuth and Destiny inventory endpoints. Your API key is saved only in this browser; the app never asks for a confidential client secret.</p><div class="ll-security-note"><b>Important API boundary:</b> this version can read inventory and use documented TransferItem, PullFromPostmaster, EquipItem, and SetLockState endpoints. The public Destiny API does not expose a dismantle-item endpoint, so dismantling stays in-game.</div><div class="help-links"><a href="https://github.com/Bungie-net/api/wiki/OAuth-Documentation" target="_blank" rel="noreferrer">Bungie OAuth documentation ↗</a><a href="https://bungie-net.github.io/" target="_blank" rel="noreferrer">Official API reference ↗</a><a href="https://github.com/48klocs/dim-wish-list-sources" target="_blank" rel="noreferrer">Community wishlist data ↗</a></div><div class="ll-modal-actions"><button class="button" data-action="close-modal">Got it</button></div>';
+    document.getElementById('modal').innerHTML='<div class="ll-modal-head"><span class="ll-eyebrow">LITTLE LIGHT</span><button class="icon-button" data-action="close-modal">×</button></div><h2 id="modalTitle">About the live connection</h2><p>Little Light uses Bungie’s documented OAuth and Destiny inventory endpoints through your Cloudflare Worker. Your Bungie API key and OAuth client secret stay in Cloudflare Worker secrets; only the Worker URL is stored in local browser preferences.</p><div class="ll-security-note"><b>Important API boundary:</b> this version can read inventory and use documented TransferItem, PullFromPostmaster, EquipItem, and SetLockState endpoints. The public Destiny API does not expose a dismantle-item endpoint, so dismantling stays in-game.</div><div class="help-links"><a href="https://github.com/Bungie-net/api/wiki/OAuth-Documentation" target="_blank" rel="noreferrer">Bungie OAuth documentation ↗</a><a href="https://bungie-net.github.io/" target="_blank" rel="noreferrer">Official API reference ↗</a><a href="https://github.com/48klocs/dim-wish-list-sources" target="_blank" rel="noreferrer">Community wishlist data ↗</a></div><div class="ll-modal-actions"><button class="button" data-action="close-modal">Got it</button></div>';
     document.getElementById('modalScrim').hidden=false;
   }
 
